@@ -3,10 +3,11 @@ import { ref } from 'vue';
 import SubMenu1 from "@/views/components/SubMenu1.vue";
 import TopNav4Admin from "@/views/components/TopNav4Admin.vue";
 import UserManagement from "../user/UserManagement.vue";
+import UserGroupManagement from "../user/UserGroupManagement.vue";
 import MovieInfo from "../movie/MovieInfo.vue";
 
 // 当前激活的菜单项
-const activeMenu = ref('2'); // 默认显示用户管理
+const activeMenu = ref('2-1'); // 默认显示用户列表
 
 // 处理菜单点击事件
 const handleMenuClick = (menuIndex) => {
@@ -22,9 +23,14 @@ const handleMenuClick = (menuIndex) => {
         <sub-menu1 @menu-click="handleMenuClick"/>
       </div>
       <div class="main-content">
-        <!-- 用户管理内容 -->
-        <div v-if="activeMenu === '2'" class="content-panel">
+        <!-- 用户列表内容 -->
+        <div v-if="activeMenu === '2-1'" class="content-panel">
           <user-management />
+        </div>
+        
+        <!-- 分组管理内容 -->
+        <div v-if="activeMenu === '2-2'" class="content-panel">
+          <user-group-management />
         </div>
         
         <!-- 电影信息内容 -->
@@ -33,7 +39,7 @@ const handleMenuClick = (menuIndex) => {
         </div>
         
         <!-- 其他菜单项的内容区域，可以根据需要添加 -->
-        <div v-if="activeMenu !== '2' && activeMenu !== '3-1'" class="content-panel">
+        <div v-if="activeMenu !== '2-1' && activeMenu !== '2-2' && activeMenu !== '3-1'" class="content-panel">
           <el-empty description="暂未实现该功能，敬请期待" />
         </div>
       </div>
@@ -53,4 +59,5 @@ const handleMenuClick = (menuIndex) => {
   overflow-y: auto;
   margin-left: 10px;
 }
+
 </style>

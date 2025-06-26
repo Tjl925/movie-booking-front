@@ -40,14 +40,14 @@ router.beforeEach((to, from, next) => {
   }
   
   // 检查是否已登录（判断token是否存在）
-  if (!userInfo.token) {
+  if (!userInfo.token && to.path !== '/Home') {
     ElMessage.warning('请先登录');
     next('/Login');
     return;
   }
   
   // 根据角色控制页面访问权限
-  const roleId = userInfo.roleId;
+  const roleId = Number(userInfo.roleId);
   
   // 超级管理员页面
   if (to.path === '/superadmin' && roleId !== 1) {

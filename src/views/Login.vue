@@ -100,11 +100,15 @@ const handleLogin = () => {
         plain: true,
       })
 
+      // 将roleId转换为数字类型进行比较
+      const roleId = Number(userInfo.roleId);
+      console.log('角色ID类型:', typeof roleId, '值:', roleId);
+      
       // 根据roleId决定重定向页面
-      if (userInfo.roleId === 1) {
+      if (roleId === 1) {
         // 超级管理员
         router.push({path: '/superadmin'});
-      } else if (userInfo.roleId === 2) {
+      } else if (roleId === 2) {
         // 管理员
         router.push({path: '/admin'});
       } else {

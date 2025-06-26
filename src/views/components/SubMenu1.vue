@@ -14,7 +14,8 @@ const handleSelect = (key: string, keyPath: string[]) => {
 <template>
   <!-- 管理员 -->
   <el-menu
-    default-active="2"
+    default-active="1"
+    :default-openeds="['2','3','4']"
     class="el-menu-vertical-demo"
     background-color="#545c64"
     text-color="#fff"
@@ -25,10 +26,14 @@ const handleSelect = (key: string, keyPath: string[]) => {
       <el-icon><icon-menu /></el-icon>
       <span>系统首页</span>
     </el-menu-item>
-    <el-menu-item index="2">
-      <el-icon><user /></el-icon>
-      <span>用户管理</span>
-    </el-menu-item>
+    <el-sub-menu index="2">
+      <template #title>
+        <el-icon><user /></el-icon>
+        <span>用户管理</span>
+      </template>
+      <el-menu-item index="2-1">用户列表</el-menu-item>
+      <el-menu-item index="2-2">分组管理</el-menu-item>
+    </el-sub-menu>
     <el-sub-menu index="3">
       <template #title>
         <el-icon><film /></el-icon>

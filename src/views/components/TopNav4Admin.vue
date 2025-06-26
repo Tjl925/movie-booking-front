@@ -3,17 +3,26 @@ import {ArrowDown} from '@element-plus/icons-vue'
 import {useRouter} from 'vue-router';
 import {logout} from "@/api/user";
 import {useUserInfoStore} from "@/stores/userInfo";
+import {ElMessage} from "element-plus";
 
 const router = useRouter();
 
 // 登出跳转
 const handleCommand = (command) => {
   if (command == 'log_out') {
-    const token = useUserInfoStore().userInfo.token;
+    const userInfoStore = useUserInfoStore();
+    const token = userInfoStore.userInfo.token;
     if (token){
-      logout(token)
+      logout(token).then((res)=>{
+        console.info(res);
+        // 清除本地存储的用户数据
+        userInfoStore.removeUserInfo();
+        // 显示登出成功提示
+        ElMessage.success('登出成功');
+        // 跳转到首页
+        router.push('/Home');
+      })
     }
-    router.push('/Home');
   }
 }
 
