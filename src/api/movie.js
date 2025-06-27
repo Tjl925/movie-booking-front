@@ -1,0 +1,62 @@
+import request from "@/utils/request";
+
+// 获取电影列表
+export const getMovieList = (params) => request.get('/api/movies/admin', { params });
+
+// 创建电影
+export const createMovie = (data) => request.post('/api/movies', data);
+
+// 更新电影
+export const updateMovie = (id, data) => request.put(`/api/movies/${id}`, data);
+
+// 删除电影
+export const deleteMovie = (id) => request.delete(`/api/movies/${id}`);
+
+// 更新电影状态
+export const updateMovieStatus = (id, status) => request.put(`/api/movies/${id}/status?status=${status}`);
+
+// 上传电影海报
+export const uploadPoster = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request.post('/api/movies/poster/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
+// 上传电影视频
+export const uploadVideo = (file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request.post('/api/movies/video/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};
+
+// 获取所有电影类型及其电影数量
+export const getAllGenres = () => request.get('/api/movies/genres');
+
+// 根据类型获取电影列表
+export const getMoviesByGenre = (genre, params) => request.get(`/api/movies/genres/${genre}`, { params });
+
+// 根据类型批量删除电影
+export const deleteMoviesByGenre = (genre) => request.delete(`/api/movies/genres/${genre}`);
+
+// 更新电影类型
+export const updateMoviesByGenre = (oldGenre, newGenre) => request.put(`/api/movies/genres/${oldGenre}?newGenre=${newGenre}`);
+
+// 获取所有电影区域及其电影数量
+export const getAllRegions = () => request.get('/api/movies/regions');
+
+// 根据区域获取电影列表
+export const getMoviesByRegion = (region, params) => request.get(`/api/movies/regions/${region}`, { params });
+
+// 根据区域批量删除电影
+export const deleteMoviesByRegion = (region) => request.delete(`/api/movies/regions/${region}`);
+
+// 更新电影区域
+export const updateMoviesByRegion = (oldRegion, newRegion) => request.put(`/api/movies/regions/${oldRegion}?newRegion=${newRegion}`);

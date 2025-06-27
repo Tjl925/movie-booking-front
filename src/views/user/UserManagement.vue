@@ -303,8 +303,8 @@ onMounted(() => {
             <el-descriptions-item label="邮箱" align="center">{{ props.row.email }}</el-descriptions-item>
             <el-descriptions-item label="手机号" align="center">{{ props.row.phone }}</el-descriptions-item>
             <el-descriptions-item label="状态" align="center">{{ props.row.status }}</el-descriptions-item>
-            <el-descriptions-item label="创建时间" align="center">{{ props.row.createdAt ? new Date(props.row.createdAt).toLocaleString() : '' }}</el-descriptions-item>
-            <el-descriptions-item label="上次登录时间" align="center">{{ props.row.lastLogin ? new Date(props.row.lastLogin).toLocaleString() : ''}}</el-descriptions-item>
+            <el-descriptions-item label="创建时间" align="center">{{ props.row.createdAt }}</el-descriptions-item>
+            <el-descriptions-item label="上次登录时间" align="center">{{ props.row.lastLogin }}</el-descriptions-item>
             <el-descriptions-item label="登录次数" align="center">{{ props.row.loginCount }}</el-descriptions-item>
           </el-descriptions>
         </template>
