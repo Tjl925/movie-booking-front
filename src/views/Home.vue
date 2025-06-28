@@ -163,6 +163,9 @@ onMounted(async () => {
 .movie-item {
   cursor: pointer;
   transition: transform 0.3s;
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* 确保高度一致 */
 }
 
 .movie-item:hover {
@@ -174,16 +177,26 @@ onMounted(async () => {
   overflow: hidden;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%; /* 确保宽度填满容器 */
+  height: 0; /* 高度设置为0，通过padding-bottom控制比例 */
+  padding-bottom: 140%; /* 设置宽高比为 1:1.4 (常见电影海报比例) */
 }
 
 .poster-image {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover; /* 关键属性：保持比例填充整个容器 */
   display: block;
 }
 
 .movie-info {
   margin-top: 10px;
+  flex-grow: 1; /* 让信息区域填充剩余空间 */
+  display: flex;
+  flex-direction: column;
 }
 
 .movie-title {

@@ -85,16 +85,17 @@
                   v-for="(seat, seatIndex) in row"
                   :key="seatIndex"
                   :class="[
-  'seat',
-  seat.status === 'AVAILABLE' ? 'available' : '',
-  seat.status === 'RESERVED' ? 'reserved' : '',
-  seat.status === 'OCCUPIED' ? 'occupied' : '',
-  seat.status === 'MAINTENANCE' ? 'maintenance' : '',
-  selectedSeats.includes(`${rowIndex}-${seatIndex}`) ? 'selected' : ''
-]"
-                  @click="seat?.status === 'AVAILABLE' ? selectSeat(rowIndex, seatIndex) : null"
+    'seat',
+    seat.status === seatStatus.AVAILABLE ? 'available' : '',
+    seat.status === seatStatus.RESERVED ? 'reserved' : '',
+    seat.status === seatStatus.OCCUPIED ? 'occupied' : '',
+    seat.status === seatStatus.MAINTENANCE ? 'maintenance' : '',
+    seat.status === seatStatus.SELECTING ? 'selecting' : '',
+    selectedSeats.includes(`${rowIndex}-${seatIndex}`) ? 'selected' : ''
+  ]"
+                  @click="selectSeat(rowIndex, seatIndex)"
               >
-                {{ String.fromCharCode(65 + rowIndex) }}{{ seatIndex + 1 }}
+                {{ seat.seatNumber }}
               </div>
             </div>
           </div>
@@ -163,11 +164,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted,nextTick } from 'vue'
 import dayjs from 'dayjs'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage,ElLoading } from 'element-plus'
 import {
   getMovieById,
   updateSeatForSelection,
@@ -185,6 +186,9 @@ import {
   Iphone
 } from '@element-plus/icons-vue'
 import { useSessionStore } from '@/stores/session'
+import {createOrder,getById} from "@/api/orders";
+import {useUserInfoStore} from "@/stores/userInfo";
+import {useOrderStore} from "@/stores/orderInfo";
 
 // 从路由获取参数
 const router = useRouter()
@@ -193,7 +197,11 @@ const movieId = route.params.movieId
 const sessionId = route.params.sessionId
 const sessionStore = useSessionStore()
 const sessionInfo = computed(() => sessionStore.currentSession)
-
+const seatsInfo=ref({})
+const frontSeatsInfo = ref([]); // 用于界面展示的座位状态
+const backSeatsInfo = ref([]);  // 用于判断是否可选的真实座位状态
+const userInfoStore = useUserInfoStore();
+const orderStore = useOrderStore()
 // 表单验证规则
 const formRules = {
   phone: [
@@ -204,7 +212,6 @@ const formRules = {
 
 // 数据定义
 const movie = ref({})
-const cinema = ref({ name: 'CGV影城(新都IMAX店)' })
 const session = ref({
   id: sessionId,
   movieId: movieId,
@@ -220,14 +227,21 @@ const seatRows = ref([])
 const selectedSeats = ref([])
 const form = ref({ phone: '' })
 const formRef = ref(null)
-
+// 数据定义
+const seatStatus = {
+  AVAILABLE: 'AVAILABLE',
+  RESERVED: 'RESERVED',
+  OCCUPIED: 'OCCUPIED',
+  MAINTENANCE: 'MAINTENANCE',
+  SELECTING: 'SELECTING' // 新增的"当前选座"状态
+}
 // 图例项
 const legendItems = ref([
   { type: 'available', text: '可选座位' },
   { type: 'reserved', text: '已预定座位' },
   { type: 'occupied', text: '已售座位' },
   { type: 'maintenance', text: '维修中座位' },
-  { type: 'selected', text: '已选座位' }
+  { type: 'selecting', text: '当前选座' }, // 新增图例
 ])
 
 // 方法定义
@@ -237,19 +251,23 @@ const getMovieDetail = async () => {
     movie.value = res.data
   }
 }
+const getFullUrl = (url) => {
+  return `http://127.0.0.1:8888/uploads${url}`
+}
 
+const formatDate = (date) => {
+  return dayjs(date).format('YYYY年MM月DD日')
+}
 const loadSeats = async () => {
   try {
     const response = await getSeatsForSelection(sessionId);
-    console.log('Backend seats data:', response.data);
-
+    console.log(response)
     if (response.data) {
-      // 1. 获取影厅行列数（从后端返回或使用默认值）
       const rows = response.data.totalRows || 8;
       const cols = response.data.totalColumns || 10;
 
-      // 2. 创建并初始化座位图（全部设为OCCUPIED）
-      const seatsMap = Array(rows).fill().map((_, rowIndex) =>
+      // 初始化函数
+      const initSeatMap = () => Array(rows).fill().map((_, rowIndex) =>
           Array(cols).fill().map((_, colIndex) => ({
             status: 'OCCUPIED',
             seatRow: rowIndex + 1,
@@ -259,28 +277,33 @@ const loadSeats = async () => {
           }))
       );
 
-      // 3. 用后端数据覆盖有效座位
+      // 初始化前端状态图（可自由修改）
+      frontSeatsInfo.value = initSeatMap();
+      // 保存后端初始状态（只读参考）
+      backSeatsInfo.value = initSeatMap();
+
+      // 填充数据
       response.data.seats.forEach(seat => {
-        // 注意：使用 rowNumber 和 columnNumber 而不是 seatRow/seatColumn
         const row = Number(seat.rowNumber) - 1;
         const col = Number(seat.columnNumber) - 1;
 
         if (row >= 0 && row < rows && col >= 0 && col < cols) {
-          seatsMap[row][col] = {
+          const seatData = {
             ...seat,
-            // 确保字段名一致
             seatRow: seat.rowNumber,
             seatColumn: seat.columnNumber,
             seatNumber: `${String.fromCharCode(65 + row)}${col + 1}`,
             status: seat.status || 'AVAILABLE'
           };
-        } else {
-          console.warn('Seat position out of range:', seat);
+
+          // 两个状态图初始状态相同
+          frontSeatsInfo.value[row][col] = { ...seatData };
+          backSeatsInfo.value[row][col] = { ...seatData };
         }
       });
 
-      seatRows.value = seatsMap;
-      console.log('Processed seats map:', seatRows.value);
+      // 将前端状态图赋值给界面
+      seatRows.value = frontSeatsInfo.value;
     }
   } catch (error) {
     console.error('加载座位失败:', error);
@@ -288,70 +311,30 @@ const loadSeats = async () => {
   }
 };
 
-const getFullUrl = (url) => {
-  return `http://127.0.0.1:8888/uploads${url}`
-}
+// 纯前端座位选择（完全不考虑后端状态）
+// 修改selectSeat方法，确保状态一致性
+const selectSeat = (rowIndex, seatIndex) => {
+  const seat = frontSeatsInfo.value[rowIndex][seatIndex];
+  const seatKey = `${rowIndex}-${seatIndex}`;
 
-const formatDate = (date) => {
-  return dayjs(date).format('YYYY年MM月DD日')
-}
-
-const selectSeat = async (rowIndex, seatIndex) => {
-  const seat = seatRows.value[rowIndex][seatIndex];
-
-  if (!seat || seat.status !== 'AVAILABLE') {
-    ElMessage.warning('该座位不可选');
+  // 只允许从AVAILABLE状态切换到SELECTING
+  if (seat.status === 'AVAILABLE') {
+    seat.status = 'SELECTING';
+    selectedSeats.value.push(seatKey);
+  }
+  // 允许从SELECTING状态切换回AVAILABLE
+  else if (seat.status === 'SELECTING') {
+    seat.status = 'AVAILABLE';
+    selectedSeats.value = selectedSeats.value.filter(s => s !== seatKey);
+  }
+  // 其他状态不允许操作
+  else {
+    ElMessage.warning('该座位当前不可选');
     return;
   }
 
-  const seatKey = `${rowIndex}-${seatIndex}`;
-  const isSelected = selectedSeats.value.includes(seatKey);
-
-  try {
-    // 乐观更新UI
-    if (isSelected) {
-      selectedSeats.value = selectedSeats.value.filter(s => s !== seatKey);
-    } else {
-      if (selectedSeats.value.length >= 6) {
-        ElMessage.warning('最多只能选择6个座位');
-        return;
-      }
-      selectedSeats.value.push(seatKey);
-    }
-
-    // 修改请求数据格式以匹配后端DTO
-    const requestData = {
-      seatId: seat.id,
-      status: isSelected ? 'AVAILABLE' : 'RESERVED'
-    };
-
-    const response = await updateSeatForSelection(requestData);
-
-    if (!response?.success) {
-      // 回滚UI状态
-      selectedSeats.value = isSelected
-          ? [...selectedSeats.value, seatKey]
-          : selectedSeats.value.filter(s => s !== seatKey);
-      ElMessage.error(response?.message || '操作失败');
-      return;
-    }
-
-    // 只更新当前座位状态，而不是重新加载整个座位图
-    seatRows.value[rowIndex][seatIndex].status = isSelected ? 'AVAILABLE' : 'RESERVED';
-
-  } catch (error) {
-    console.error('更新座位状态失败:', error);
-    // 回滚UI状态
-    selectedSeats.value = isSelected
-        ? [...selectedSeats.value, seatKey]
-        : selectedSeats.value.filter(s => s !== seatKey);
-
-    if (error.response?.data) {
-      ElMessage.error(`服务器错误: ${error.response.data.message || error.response.statusText}`);
-    } else {
-      ElMessage.error('网络错误，请检查连接');
-    }
-  }
+  // 更新视图
+  seatRows.value = [...frontSeatsInfo.value];
 };
 
 const removeSeat = (seatNumber) => {
@@ -370,33 +353,129 @@ const removeSeat = (seatNumber) => {
 
 const confirmOrder = async () => {
   if (selectedSeats.value.length === 0) {
-    ElMessage.error('请选择座位')
-    return
+    ElMessage.error('请选择座位');
+    return;
   }
 
   try {
-    await formRef.value.validate()
+    // 1. 验证表单
+    await formRef.value.validate();
 
-    // 这里可以添加跳转到支付页面的逻辑
-    router.push({
-      path: `/payment/${movieId}/${sessionId}`,
-      query: {
-        seats: selectedSeatsDisplay.value.join(','),
-        totalPrice: totalPrice.value,
-        phone: form.value.phone
+    // 2. 准备数据并验证
+    const seatIds = new Set();
+    const seatsToCheck = [];
+    const seatDetails = []; // 新增：用于存储座位详情
+
+    for (const pos of selectedSeats.value) {
+      const [row, col] = pos.split('-').map(Number);
+      const seat = seatRows.value[row][col];
+
+      // 验证座位状态
+      if (!seat || seat.status !== 'SELECTING') {
+        throw new Error(`座位 ${seat?.seatNumber || '未知'} 状态无效`);
       }
-    })
 
+      // 验证座位ID是否存在
+      if (!seat.id) {
+        throw new Error(`座位 ${seat.seatNumber} 缺少ID`);
+      }
+
+      // 检查重复座位
+      if (seatIds.has(seat.id)) {
+        throw new Error(`座位 ${seat.seatNumber} 被重复选择`);
+      }
+      seatIds.add(seat.id);
+
+      seatsToCheck.push({
+        seatId: seat.id,
+        seatNumber: seat.seatNumber
+      });
+
+      // 收集座位详情
+      seatDetails.push({
+        seatId: seat.id,
+        seatNumber: seat.seatNumber,
+        row: seat.seatRow,
+        column: seat.seatColumn,
+        price: session.value.price * (seat.priceMultiplier || 1)
+      });
+    }
+
+    // 3. 显示加载中
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在创建订单...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    });
+
+    try {
+      // 4. 调用API创建订单
+      const orderData = {
+        sessionId: Number(sessionId),
+        movieId: Number(movieId),
+        userId: userInfoStore.userInfo.id,
+        phone: form.value.phone,
+        seatIds: seatsToCheck.map(seat => seat.seatId),
+        seatDetails: seatDetails, // 新增座位详情
+        totalPrice: totalPrice.value,
+        movieTitle: movie.value.title,
+        sessionInfo: {
+          hallName: session.value.hallName,
+          showTime: `${session.value.showDate} ${session.value.startTime}`
+        }
+      };
+
+      console.log(orderData);
+      const res = await createOrder(orderData, userInfoStore.userInfo.id);
+
+      if (res.status) {
+        console.log(res.data)
+        const seatIds = res.data.orderItems.map(item => item.seatId)
+        const seatsInfo = await Promise.all(
+            seatIds.map(id => getById(id).then(r => r.data))
+        )
+        // 设置基本信息
+        orderStore.setBasicInfo(
+            res.data.session.movie.title,
+            res.data.session.sessionTime,
+            res.data.session.endTime,
+            seatsInfo
+        )
+
+        // 确保数据已设置后再跳转
+        await nextTick()
+
+        router.push({
+          path: `/order/${res.data.id}`,
+          query: {
+            totalPrice: totalPrice.value,
+            phone: form.value.phone
+          }
+        })
+      } else {
+        await loadSeats();
+        ElMessage.error(res.message || '创建订单失败');
+      }
+    } finally {
+      loading.close();
+    }
   } catch (error) {
-    console.error('表单验证失败', error)
+    console.error('订单创建失败:', error);
+    if (error.response) {
+      ElMessage.error(error.response.data?.message || '创建订单失败');
+    } else {
+      ElMessage.error(error.message || '创建订单失败，请重试');
+    }
+    await loadSeats();
   }
-}
+};
 
 // 计算属性
 const totalPrice = computed(() => {
   return selectedSeats.value.reduce((total, pos) => {
     const [row, col] = pos.split('-')
     const seat = seatRows.value[row][col]
+    console.log(seat.priceMultiplier)
     return total + (session.value.price * (seat.priceMultiplier || 1))
   }, 0)
 })
@@ -671,8 +750,23 @@ onMounted(async () => {
               color: white;
               cursor: not-allowed;
             }
+            &.selecting {
+              background-color: var(--el-color-warning); /* 改为橙色或其他颜色 */
+              color: white; /* 文字颜色改为白色 */
+              cursor: pointer;
+              transform: scale(1.1);
+              box-shadow: 0 0 0 2px rgba(var(--el-color-warning-rgb), 0.3);
+            }
 
+
+
+            // 修改不可选状态的鼠标样式
+            &.reserved, &.occupied, &.maintenance {
+              cursor: not-allowed;
+            }
             &.selected {
+
+
               background-color: var(--el-color-danger);
               color: white;
               transform: scale(1.1);
@@ -718,7 +812,9 @@ onMounted(async () => {
           &.maintenance {
             background-color: var(--el-color-info);
           }
-
+          &.selecting {
+            background-color: var(--el-color-danger);
+          }
           &.selected {
             background-color: var(--el-color-danger);
           }

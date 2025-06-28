@@ -12,6 +12,7 @@ import SearchList from "@/views/SearchList.vue";
 import chooseSessions from "@/views/choose/chooseSessions.vue";
 import chooseSeat from "@/views/choose/chooseSeat.vue";
 import seatSelection from "@/views/choose/seatSelection.vue";
+import OrderDetail from "@/views/order/OrderDetail.vue";
 
 
 
@@ -38,7 +39,8 @@ const routes = [
     name: 'seatSelection',
     component: seatSelection,
     props: true
-  }
+  },
+  {path: '/order/:id', component: OrderDetail},
 ]
 
 // 创建路由器
