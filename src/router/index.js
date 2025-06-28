@@ -3,10 +3,15 @@ import Home from "@/views/Home.vue";
 import Login from "@/views/Login.vue";
 import adminPage from "@/views/admin/adminPage.vue";
 import superadminPage from "@/views/superadmin/superadminPage.vue";
+import moviedetails from "@/views/movie/moviedetails.vue";
 import { useUserInfoStore } from '@/stores/userInfo';
 import { ElMessage } from 'element-plus';
 import UserManagement from "@/views/user/UserManagement.vue";
 import MovieInfo from "@/views/movie/MovieInfo.vue";
+import SearchList from "@/views/SearchList.vue";
+import chooseSessions from "@/views/choose/chooseSessions.vue";
+import chooseSeat from "@/views/choose/chooseSeat.vue";
+import seatSelection from "@/views/choose/seatSelection.vue";
 
 
 
@@ -19,6 +24,21 @@ const routes = [
   {path: '/superadmin', component: superadminPage},
   {path: '/user', component: UserManagement},
   {path: '/movie', component: MovieInfo},
+  {path: '/movie/:id', component: moviedetails},
+  {path: '/SearchList', component: SearchList},
+  {path: '/chooseSessions/:id', component: chooseSessions},
+  {
+    path: '/choose-seat/:movieId/:sessionId',
+    name: 'chooseSeat',
+    component: chooseSeat,
+    props: true
+  },
+  {
+    path: '/seat-selection/:movieId/:sessionId',
+    name: 'seatSelection',
+    component: seatSelection,
+    props: true
+  }
 ]
 
 // 创建路由器
@@ -26,50 +46,49 @@ const router = createRouter({
   history: createWebHistory(), // 路由模式
   routes: routes
 })
-
 // 全局前置守卫
 router.beforeEach((to, from, next) => {
   // 获取用户信息
   const userInfoStore = useUserInfoStore();
   const userInfo = userInfoStore.userInfo;
-  
+
   // 登录页面允许直接访问
   if (to.path === '/Login') {
     next();
     return;
   }
-  
+
   // 检查是否已登录（判断token是否存在）
   if (!userInfo.token && to.path !== '/Home') {
     ElMessage.warning('请先登录');
     next('/Login');
     return;
   }
-  
+
   // 根据角色控制页面访问权限
   const roleId = Number(userInfo.roleId);
-  
+
   // 超级管理员页面
   if (to.path === '/superadmin' && roleId !== 1) {
     ElMessage.error('无权访问超级管理员页面');
     next(getDefaultRouteByRole(roleId));
     return;
   }
-  
+
   // 管理员页面
   if (to.path === '/admin' && roleId !== 2 && roleId !== 1) {
     ElMessage.error('无权访问管理员页面');
     next(getDefaultRouteByRole(roleId));
     return;
   }
-  
+
   // 用户管理相关页面，只有管理员和超级管理员可访问
   if (to.path.startsWith('/user') && roleId === 3) {
     ElMessage.error('无权访问用户管理页面');
     next(getDefaultRouteByRole(roleId));
     return;
   }
-  
+
   // 其他情况放行
   next();
 });

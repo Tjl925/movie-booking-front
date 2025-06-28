@@ -2,8 +2,8 @@
   <div class="login-container">
     <!-- 左侧宣传图区域 -->
     <div class="left-section">
-      <img src="@/assets/11063_1.jpg" alt="猫眼电影 logo" class="logo"/>
-      <img src="@/assets/avatar.jpg" alt="登录宣传图" class="promo-img"/>
+      <img src="@/assets/11063_1.jpg" alt="猫眼电影 logo" class="logo" />
+      <img src="@/assets/avatar.jpg" alt="登录宣传图" class="promo-img" />
     </div>
     <!-- 右侧表单区域 -->
     <div class="right-section">
@@ -34,7 +34,7 @@
               @click="handleQQLogin"
               class="social-btn qq-btn"
           >
-            <img src="@/assets/qq.jpg" class="social-icon"/>
+            <img src="@/assets/qq.jpg" class="social-icon" />
             QQ登录
           </el-button>
           <el-button
@@ -43,7 +43,7 @@
               @click="handleWechatLogin"
               class="social-btn wechat-btn"
           >
-            <img src="@/assets/wx.jpg" class="social-icon"/>
+            <img src="@/assets/wx.jpg" class="social-icon" />
             微信登录
           </el-button>
         </el-form-item>
@@ -63,13 +63,22 @@
 </template>
 
 <script setup>
-import {ref} from 'vue';
-import {ElMessage} from 'element-plus';
-import {login} from '@/api/user';
+import { ref } from 'vue';
+import { ElMessage } from 'element-plus';
+import {login} from'@/api/user';
 import router from "@/router";
 import {useUserInfoStore} from '@/stores/userInfo';
+import { onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 
-const loginDTO = ref({
+const route = useRoute();
+
+onMounted(() => {
+  if (route.query.username) {
+    loginDTO.value.username = route.query.username;
+  }
+});
+const loginDTO=ref({
   username: "",
   password: "",
 })
@@ -80,7 +89,7 @@ const userInfoStore = useUserInfoStore();
 // 登录逻辑
 const handleLogin = () => {
   const loginData = loginDTO.value;
-  login(loginData).then(res => {
+  login(loginData).then(res=>{
     console.info(res);
     if (res.status) {
       // 保存用户信息和token到store
@@ -95,7 +104,7 @@ const handleLogin = () => {
 
       // 根据角色ID进行不同的页面重定向
       ElMessage({
-        message: '登录成功！',
+        message: '登录成功啦！',
         type: 'success',
         plain: true,
       })
@@ -139,32 +148,27 @@ const handleWechatLogin = () => {
   height: 100vh;
   background-color: #f5f7fa;
 }
-
 .left-section, .right-section {
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 0 50px;
 }
-
 .left-section {
   flex: 1;
   align-items: center;
 }
-
 .right-section {
   width: 400px;
   align-items: center;
   box-shadow: -2px 0 15px rgba(0, 0, 0, 0.05);
   background: #fff;
 }
-
 .logo {
   width: 120px;
   height: 120px;
   margin-bottom: 20px;
 }
-
 .promo-img {
   max-width: 100%;
   border-radius: 10px;
@@ -175,11 +179,9 @@ const handleWechatLogin = () => {
 .login-form {
   width: 100%;
 }
-
 .input-style {
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-
   &:focus {
     box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.2);
   }
@@ -191,13 +193,11 @@ const handleWechatLogin = () => {
   justify-content: space-between;
   margin: 15px 0;
 }
-
 .social-icon {
   width: 18px;
   height: 18px;
   margin-right: 6px;
 }
-
 .social-btn {
   display: flex;
   align-items: center;
@@ -208,20 +208,16 @@ const handleWechatLogin = () => {
   font-size: 14px;
   transition: all 0.2s;
 }
-
 .social-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-
 .qq-btn {
   background-color: #12b7f5;
 }
-
 .wechat-btn {
   background-color: #52c41a;
 }
-
 .social-btn i {
   margin-right: 6px;
   font-size: 18px;
