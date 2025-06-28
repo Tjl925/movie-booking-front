@@ -1,70 +1,71 @@
 <template>
-  <div class="movie-details">
+  <div class="movie-details-container">
     <!-- 顶部导航 -->
     <TopNav />
-
-    <!-- 电影基本信息区域 -->
-    <el-row :gutter="30" class="info-section">
-      <el-col :span="8">
-        <div class="poster-container">
-          <img :src="getFullUrl(movie.posterUrl)" alt="电影海报" class="movie-poster">
-          <el-button type="primary" @click="goToBooking">特惠购票</el-button>
-        </div>
-      </el-col>
-      <el-col :span="16">
-        <div class="movie-info">
-          <h1 class="movie-title">{{ movie.title }}</h1>
-
-          <!-- 电影标签 -->
-          <div class="movie-tags">
-            <el-tag v-for="tag in movie.tags" :key="tag" type="info" size="small">{{ tag }}</el-tag>
+    <!-- 主要内容区域 -->
+    <div class="movie-content">
+      <!-- 电影基本信息区域 -->
+      <el-row :gutter="30" class="info-section">
+        <!-- 原有内容保持不变 -->
+        <el-col :span="8">
+          <div class="poster-container">
+            <img :src="getFullUrl(movie.posterUrl)" alt="电影海报" class="movie-poster">
           </div>
-
-          <!-- 基本信息 -->
-          <div class="base-info">
-            <p>
-              <span>导演：{{ movie.director }}</span>
-            </p>
-            <p>
-              <span>主演：{{ movie.actors }}</span>
-            </p>
-            <p>
-              <span>类型：{{ movie.genre }}</span>
-              <span>地区：{{ movie.country }}</span>
-            </p>
-            <p>
-              <span>时长：{{ movie.durationMinutes }}分钟</span>
-              <span>上映日期：{{ formatDate(movie.releaseDate) }}</span>
-            </p>
-          </div>
-
-          <!-- 评分和票房 -->
-          <div class="rating-box">
-            <div class="rating-score">
-              <el-rate v-model="movie.rating" disabled text-color="#ff9900" />
-              <span class="score-number">{{ movie.rating }}分</span>
-              <span class="rating-count">({{ movie.ratingCount }}人评分)</span>
+        </el-col>
+        <el-col :span="16">
+          <div class="movie-info">
+            <h1 class="movie-title">{{ movie.title }}</h1>
+            <!-- 电影标签 -->
+            <div class="movie-tags">
+              <el-tag v-for="tag in movie.tags" :key="tag" type="info" size="small">{{ tag }}</el-tag>
             </div>
-            <div class="box-office">
-              <span>觀看人數：{{movie.viewCount}}人</span>
+            <!-- 基本信息 -->
+            <div class="base-info">
+              <p>
+                <span>导演：{{ movie.director }}</span>
+              </p>
+              <p>
+                <span>主演：{{ movie.actors }}</span>
+              </p>
+              <p>
+                <span>类型：{{ movie.genre }}</span>
+                <span>地区：{{ movie.country }}</span>
+              </p>
+              <p>
+                <span>时长：{{ movie.durationMinutes }}分钟</span>
+                <span>上映日期：{{ formatDate(movie.releaseDate) }}</span>
+              </p>
+            </div>
+            <!-- 评分和票房区域 - 新增按钮位置 -->
+            <div class="rating-box">
+              <div class="rating-score">
+                <el-rate v-model="movie.rating" disabled text-color="#ff9900" />
+                <span class="score-number">{{ movie.rating }}分</span>
+                <span class="rating-count">({{ movie.ratingCount }}人评分)</span>
+              </div>
+              <div class="box-office">
+                <span>觀看人數：{{movie.viewCount}}人</span>
+              </div>
+              <!-- 特惠购票按钮移动至此 -->
+              <div class="booking-button-container movie-booking-btn">
+                <el-button type="primary" size="large" @click="goToBooking">特惠购票</el-button>
+              </div>
             </div>
           </div>
-        </div>
-      </el-col>
-    </el-row>
-
-    <!-- 标签页导航 -->
-    <el-tabs v-model="activeTab" class="tabs">
-      <el-tab-pane label="介绍" name="intro">
-        {{ movie.description }}
-      </el-tab-pane>
-      <el-tab-pane label="演职人员" name="cast"></el-tab-pane>
-      <el-tab-pane label="奖项" name="awards"></el-tab-pane>
-      <el-tab-pane label="图集" name="gallery"></el-tab-pane>
-      <el-tab-pane label="预告片" name="trailers">
-
-      </el-tab-pane>
-    </el-tabs>
+        </el-col>
+      </el-row>
+      <!-- 标签页导航（移除原按钮） -->
+      <el-tabs v-model="activeTab" class="tabs">
+        <el-tab-pane label="介绍" name="intro">
+          {{ movie.description }}
+          <!-- 原按钮位置改为空容器或删除 -->
+        </el-tab-pane>
+        <el-tab-pane label="演职人员" name="cast"></el-tab-pane>
+        <el-tab-pane label="奖项" name="awards"></el-tab-pane>
+        <el-tab-pane label="图集" name="gallery"></el-tab-pane>
+        <el-tab-pane label="预告片" name="trailers"></el-tab-pane>
+      </el-tabs>
+    </div>
   </div>
 </template>
 
@@ -149,37 +150,85 @@ const playTrailer = (url) => {
 </script>
 
 <style scoped>
-.movie-details {
-  padding: 20px;
+.movie-details-container {
   background-color: #f5f5f5;
+  min-height: 100vh;
 }
 
+.movie-content {
+  width: 1200px; /* 与 TopNav 的 nav-container 宽度一致 */
+  margin: 0 auto; /* 水平居中 */
+  padding: 20px 0; /* 上下留白 */
+}
+.rating-box {
+  display: flex;
+  flex-direction: column; /* 改为垂直布局 */
+  justify-content: flex-start;
+  align-items: flex-start; /* 左对齐 */
+  margin-top: 20px;
+  gap: 15px; /* 元素间距 */
+}
+
+.rating-score, .box-office {
+  display: flex;
+  align-items: center;
+}
+
+/* 按钮样式优化 */
+.movie-booking-btn {
+  margin-top: 15px; /* 与评分区域保持间距 */
+  width: 100%; /* 占满父容器宽度 */
+  text-align: right; /* 按钮右对齐 */
+}
+
+.movie-booking-btn .el-button {
+  width: 180px; /* 调整按钮宽度 */
+  height: 45px;
+  font-size: 16px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .movie-booking-btn .el-button {
+    width: 100%; /* 移动端全宽 */
+  }
+}
 .info-section {
   background-color: #fff;
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  flex: 3; /* 增大左侧区域宽度 */
+  margin-right: 30px;
+  /* 左侧与logo左边界对齐 */
+  position: relative;
+  left: 0;
+  flex: 1; /* 缩小右侧区域宽度 */
+  /* 右侧与头像右边界对齐 */
+  position: relative;
+  right: 0;
 }
 
 .poster-container {
   position: relative;
   text-align: center;
+  width: 100%; /* 确保宽度填满容器 */
+  height: 0; /* 高度设置为0，通过padding-bottom控制比例 */
+  padding-bottom: 140%; /* 设置宽高比为 1:1.4 (常见电影海报比例) */
+  overflow: hidden; /* 隐藏超出部分 */
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .movie-poster {
-  width: 100%;
-  max-height: 400px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-bottom: 15px;
-}
-
-.el-button {
   position: absolute;
-  bottom: 10px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 关键属性：保持比例填充整个容器 */
+  border-radius: 8px;
 }
 
 .movie-title {
@@ -188,7 +237,18 @@ const playTrailer = (url) => {
   margin-bottom: 15px;
   color: #333;
 }
+.booking-button-container {
+  margin-top: 30px;
+  text-align: center;
+  padding: 20px 0;
+}
 
+/* 调整按钮样式 */
+.booking-button-container .el-button {
+  width: 200px;
+  height: 50px;
+  font-size: 18px;
+}
 .movie-tags {
   margin-bottom: 15px;
 }
