@@ -63,7 +63,23 @@
         <el-tab-pane label="演职人员" name="cast"></el-tab-pane>
         <el-tab-pane label="奖项" name="awards"></el-tab-pane>
         <el-tab-pane label="图集" name="gallery"></el-tab-pane>
-        <el-tab-pane label="预告片" name="trailers"></el-tab-pane>
+        <el-tab-pane label="预告片" name="trailers">
+          <div>
+            <video-player
+                v-if="movie.trailerUrl"
+                :src="getFullUrl(movie.trailerUrl)"
+                type="video/mp4"
+                :options="{
+        autoplay: false,
+        muted: true,
+        controls: true,
+        responsive: true,
+        techOrder: ['html5']
+    }"
+                style="width: 800px; height: 450px"
+            />
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </div>
   </div>
@@ -78,8 +94,9 @@ import {
 import { VideoPlay } from '@element-plus/icons-vue' // 关键修复点
 import dayjs from 'dayjs'
 import TopNav from "@/views/components/TopNav.vue";
-import { getMovieById } from "@/api/movie";
-
+import {getMovieById} from "@/api/user"
+import { VideoPlayer } from '@videojs-player/vue';
+import 'video.js/dist/video-js.css';
 // 接收路由参数
 const route = useRoute();
 const router = useRouter();

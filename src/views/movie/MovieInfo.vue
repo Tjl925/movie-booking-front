@@ -32,11 +32,9 @@ const statusOptions = [
   { value: 'NOW_SHOWING', label: '上映中' },
   { value: 'ENDED', label: '已下架' }
 ];
-
-const getUrl =(url)=>{
+const getFullUrl = (url) => {
   return `http://127.0.0.1:8888/uploads${url}`;
-}
-
+};
 // 获取电影列表
 const fetchMovieList = async () => {
   try {
@@ -243,7 +241,7 @@ onMounted(() => {
               <el-image
                 v-if="props.row.posterUrl"
                 style="width: 50px; height: 70px"
-                :src="getUrl(props.row.posterUrl)"
+                :src="getFullUrl(props.row.posterUrl)"
               />
               <span v-else>暂无海报</span>
             </el-descriptions-item>
@@ -270,7 +268,7 @@ onMounted(() => {
               <el-link 
                 v-if="props.row.trailerUrl" 
                 type="primary" 
-                :href="props.row.trailerUrl" 
+                :href="getFullUrl(props.row.trailerUrl)"
                 target="_blank"
               >
                 观看预告片
@@ -300,7 +298,7 @@ onMounted(() => {
         <template #default="scope">
           <el-image
             style="width: 100px; height: 120px"
-            :src="getUrl(scope.row.posterUrl)"
+            :src="getFullUrl(scope.row.posterUrl)"
             fit="cover"
           />
         </template>

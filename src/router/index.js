@@ -12,7 +12,7 @@ import SearchList from "@/views/SearchList.vue";
 import chooseSessions from "@/views/choose/chooseSessions.vue";
 import seatSelection from "@/views/choose/seatSelection.vue";
 import OrderDetail from "@/views/order/OrderDetail.vue";
-import PaymentSuccess from "@/views/order/PaymentSuccess.vue";
+import MovieList from "@/views/movie/MovieList.vue";
 
 
 
@@ -35,7 +35,7 @@ const routes = [
     props: true
   },
   {path: '/order/:id', component: OrderDetail},
-  {path: '/payment-success/:id', component: PaymentSuccess},
+  {path: '/MovieList', component: MovieList},
 ]
 
 // 创建路由器

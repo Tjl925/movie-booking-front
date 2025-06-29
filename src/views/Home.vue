@@ -8,11 +8,11 @@
         <div class="section-header">
           <h2 class="section-title">正在热映</h2>
           <div class="more-movies">
-            <a href="#" @click.prevent>查看全部 ></a>
+            <a href="#" @click="handleAllMovies">查看全部 ></a>
           </div>
         </div>
         <div class="movie-list">
-          <!-- 电影项循环 - 模拟数据 -->
+          <!-- 电影项循环 -->
           <div
               v-for="movie in movies"
               :key="movie.id"
@@ -40,18 +40,32 @@
       <div class="right-section">
         <h2 class="section-title">评分最高</h2>
         <div class="top10-list">
-          <!-- TOP10电影循环 - 模拟数据 -->
           <div
               v-for="(movie, index) in top10Movies"
               :key="movie.id"
               class="top10-item"
+              @mouseenter="hoverIndex = index"
+              @mouseleave="hoverIndex = -1"
+              :class="{
+                'hover-effect': hoverIndex === index,
+                'top3-item': index < 3,
+                'hover-top3': hoverIndex === index && index < 3
+              }"
               @click="goToDetail(movie.id)"
           >
-            <div class="top10-rank">{{ index + 1 }}</div>
+            <div class="top10-rank" :class="{'top3-rank': index < 3}">
+              {{ index + 1 }}
+            </div>
             <div class="top10-info">
               <h3 class="top10-title">{{ movie.title }}</h3>
-              <div class="top10-rating">{{ movie.rating }}</div>
+              <div class="top10-rating">{{ movie.rating }}分</div>
             </div>
+            <!-- 前三名海报（悬停时显示） -->
+            <div
+                v-if="index < 3"
+                class="poster-preview"
+                :style="{backgroundImage: `url(${getUrl(movie.posterUrl)})`}"
+            ></div>
           </div>
         </div>
       </div>
@@ -65,45 +79,47 @@ import { useRouter } from "vue-router";
 import {getShowingMoives} from "@/api/user"
 import {onMounted, ref} from "vue";
 import {getTop10Movies} from "@/api/user"
-// 模拟电影数据
+
 const movies = ref([])
 const top10Movies = ref([])
-const Page=ref({
+const hoverIndex = ref(-1) // 新增悬停状态跟踪
+const Page = ref({
   current:1,
   size:8,
 })
-const getMovies =async  ()=>{
+
+const getMovies = async () => {
   getShowingMoives(Page.value.current,Page.value.size).then(res=>{
     movies.value=res.data.records;
-    console.log(res.data.records);
-    console.log(movies);
   })
 }
-const gettop10Movies =async  ()=>{
+
+const gettop10Movies = async () => {
   getTop10Movies().then(res=>{
     top10Movies.value=res.data;
   })
 }
-const getUrl =(url)=>{
+const handleAllMovies=()=>{
+  router.push('/MovieList');
+}
+const getUrl = (url) => {
   return `http://127.0.0.1:8888/uploads${url}`;
 }
 
 const router = useRouter();
 
-// 跳转到电影详情页
 const goToDetail = (movieId) => {
-  // 修复原代码中的错误路径和括号
   router.push({
-    path: `/movie/${movieId}`  // 确保路由路径匹配你的路由配置
+    path: `/movie/${movieId}`
   });
 };
 
-// 跳转到购票界面
 const goToBooking = (movieId) => {
   router.push({
-    path: `/chooseSessions/${movieId}`  // 确保路由路径匹配你的路由配置
+    path: `/chooseSessions/${movieId}`
   });
 };
+
 onMounted(async () => {
   await getMovies();
   await gettop10Movies();
@@ -118,26 +134,21 @@ onMounted(async () => {
 .main-content {
   display: flex;
   margin-top: 30px;
-  /* 确保左侧与logo对齐，右侧与头像对齐 */
-  position: relative;
-  /* 假设logo左边界位置为50px，头像右边界为1200px */
   max-width: 1200px;
   margin: 0 auto;
 }
 
 .left-section {
-  flex: 3; /* 增大左侧区域宽度 */
+  flex: 3;
   margin-right: 30px;
-  /* 左侧与logo左边界对齐 */
-  position: relative;
-  left: 0;
 }
 
 .right-section {
-  flex: 1; /* 缩小右侧区域宽度 */
-  /* 右侧与头像右边界对齐 */
-  position: relative;
-  right: 0;
+  flex: 1;
+  background: #fff;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .section-header {
@@ -156,7 +167,7 @@ onMounted(async () => {
 
 .movie-list {
   display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 每行显示四个缩略图 */
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
 }
 
@@ -165,7 +176,7 @@ onMounted(async () => {
   transition: transform 0.3s;
   display: flex;
   flex-direction: column;
-  height: 100%; /* 确保高度一致 */
+  height: 100%;
 }
 
 .movie-item:hover {
@@ -177,9 +188,9 @@ onMounted(async () => {
   overflow: hidden;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  width: 100%; /* 确保宽度填满容器 */
-  height: 0; /* 高度设置为0，通过padding-bottom控制比例 */
-  padding-bottom: 140%; /* 设置宽高比为 1:1.4 (常见电影海报比例) */
+  width: 100%;
+  height: 0;
+  padding-bottom: 140%;
 }
 
 .poster-image {
@@ -188,13 +199,13 @@ onMounted(async () => {
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover; /* 关键属性：保持比例填充整个容器 */
+  object-fit: cover;
   display: block;
 }
 
 .movie-info {
   margin-top: 10px;
-  flex-grow: 1; /* 让信息区域填充剩余空间 */
+  flex-grow: 1;
   display: flex;
   flex-direction: column;
 }
@@ -251,43 +262,84 @@ onMounted(async () => {
 .top10-item {
   display: flex;
   align-items: center;
-  padding: 15px 0;
-  border-bottom: 1px solid #f0f0f0;
-  transition: background-color 0.3s;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #f0f0f0;
 }
 
-.top10-item:last-child {
-  border-bottom: none;
+/* 第4-10名悬停效果 */
+.top10-item.hover-effect:not(.top3-item) {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-color: #e64340;
 }
 
-.top10-item:hover {
-  background-color: #f5f5f5;
+/* 前三名基础样式 */
+.top3-item {
+  position: relative;
+  padding-right: 12px;
 }
 
+/* 前三名悬停效果 */
+.top3-item.hover-top3 {
+  padding-right: 100px;
+  background: #fffaf8;
+}
+
+/* 海报预览 */
+.poster-preview {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  transform: translateY(-50%);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* 前三名悬停时显示海报 */
+.top3-item.hover-top3 .poster-preview {
+  width: 80px;
+  height: 120px;
+  opacity: 1;
+}
+
+/* 排名样式 */
 .top10-rank {
   width: 24px;
   height: 24px;
-  background-color: #e64340;
-  color: white;
+  background: #e0e0e0;
+  color: #666;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
-  margin-right: 10px;
+  margin-right: 12px;
 }
 
-.top10-info {
-  flex: 1;
-  cursor: pointer;
+/* 前三名排名特殊样式 */
+.top3-rank {
+  background: linear-gradient(135deg, #e64340, #ff6600);
+  color: white;
+  font-size: 16px;
+  width: 28px;
+  height: 28px;
 }
 
 .top10-title {
   font-size: 14px;
-  margin-bottom: 5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: bold;
+  margin-bottom: 4px;
 }
 
 .top10-rating {

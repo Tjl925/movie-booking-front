@@ -1,7 +1,7 @@
 <script setup>
-import { ref } from 'vue';
+import {ref, watch} from 'vue';
 import { ArrowDown } from '@element-plus/icons-vue';
-import { useRouter } from 'vue-router';
+import {useRoute, useRouter} from 'vue-router';
 import { ElMessage } from "element-plus";
 import {register, updateUserProfile, uploadAvatar, changePassword} from "@/api/user";
 import { useUserInfoStore } from '@/stores/userInfo';
@@ -9,7 +9,16 @@ import { onBeforeUnmount } from 'vue';
 
 // 1. 路由和状态管理
 const router = useRouter();
+const route = useRoute();
 const userInfoStore = useUserInfoStore();
+const activeMenu = ref('1');
+watch(() => route.path, (newPath) => {
+  if (newPath === '/Home') {
+    activeMenu.value = '1';
+  } else if (newPath === '/MovieList') {
+    activeMenu.value = '2';
+  }
+}, { immediate: true });
 // 2. 通用工具函数
 // 存储生成的预览URL，用于组件卸载时释放
 const previewUrls = ref([]);
@@ -55,7 +64,7 @@ const maskEmail = (email) => {
 };
 
 // 3. 导航和菜单相关
-const activeMenu = ref('1');
+
 const keyword=ref('')
 // 处理菜單點擊
 const handleMenuClick = (index) => {
