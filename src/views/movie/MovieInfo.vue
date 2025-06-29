@@ -23,7 +23,9 @@ const statusOptions = [
   { value: 'NOW_SHOWING', label: '上映中' },
   { value: 'ENDED', label: '已下架' }
 ];
-
+const getFullUrl = (url) => {
+  return `http://127.0.0.1:8888/uploads${url}`;
+};
 // 获取电影列表
 const fetchMovieList = async () => {
   try {
@@ -210,7 +212,7 @@ onMounted(() => {
               <el-link 
                 v-if="props.row.trailerUrl" 
                 type="primary" 
-                :href="props.row.trailerUrl" 
+                :href="getFullUrl(props.row.trailerUrl)"
                 target="_blank"
               >
                 观看预告片
