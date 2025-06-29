@@ -171,7 +171,6 @@ import { useRouter } from 'vue-router'
 import { ElMessage,ElLoading } from 'element-plus'
 import {
   getMovieById,
-  updateSeatForSelection,
   getSeatsForSelection
 } from "@/api/user"
 import {
@@ -277,32 +276,30 @@ const loadSeats = async () => {
           }))
       );
 
-      // 初始化前端状态图（可自由修改）
+      // 初始化前端状态图
       frontSeatsInfo.value = initSeatMap();
-      // 保存后端初始状态（只读参考）
+      // 保存后端初始状态
       backSeatsInfo.value = initSeatMap();
 
-      // 填充数据
-      response.data.seats.forEach(seat => {
-        const row = Number(seat.rowNumber) - 1;
-        const col = Number(seat.columnNumber) - 1;
+      // 填充数据 - 修改这里，使用 seatSessions 而不是 seats
+      response.data.seatSessions.forEach(seatSession => {
+        const row = Number(seatSession.rowNumber) - 1;
+        const col = Number(seatSession.columnNumber) - 1;
 
         if (row >= 0 && row < rows && col >= 0 && col < cols) {
           const seatData = {
-            ...seat,
-            seatRow: seat.rowNumber,
-            seatColumn: seat.columnNumber,
+            ...seatSession,
+            seatRow: seatSession.rowNumber,
+            seatColumn: seatSession.columnNumber,
             seatNumber: `${String.fromCharCode(65 + row)}${col + 1}`,
-            status: seat.status || 'AVAILABLE'
+            status: seatSession.status || 'AVAILABLE'
           };
 
-          // 两个状态图初始状态相同
           frontSeatsInfo.value[row][col] = { ...seatData };
           backSeatsInfo.value[row][col] = { ...seatData };
         }
       });
 
-      // 将前端状态图赋值给界面
       seatRows.value = frontSeatsInfo.value;
     }
   } catch (error) {
@@ -427,7 +424,7 @@ const confirmOrder = async () => {
 
       console.log(orderData);
       const res = await createOrder(orderData, userInfoStore.userInfo.id);
-
+      console.log(res.data);
       if (res.status) {
         console.log(res.data)
         const seatIds = res.data.orderItems.map(item => item.seatId)
