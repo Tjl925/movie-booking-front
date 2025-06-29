@@ -21,6 +21,3 @@ export const getSearchList = (current,size,key) => request.get('/api/movies/publ
 export const changePassword = (ChangePasswordDTO) => request.post('http://localhost:8888/api/users/change-password', ChangePasswordDTO);
 export const getSessionInfosByMovieId = (movieId) => request.get(`/api/sessions/public/movie/${movieId}/session-infos`);
 export const getSeatsForSelection = (id)=>request.get(`/api/sessions/public/${id}/seat-selection`);
-export const updateSeatForSelection = (dto) =>request.post('/api/sessions/public/update-seat-status',dto);
-export const userInfoService =(id)=>request.get(`/api/users/${id}`);
-

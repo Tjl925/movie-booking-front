@@ -9,11 +9,12 @@
     </el-steps>
 
     <el-alert
-        :title="`请在 ${minutes} 分 ${seconds} 秒内完成支付`"
+        :title="`请在 ${countdownDisplay} 内完成支付`"
         type="warning"
         description="超时订单会自动取消，如遇支付问题，请致电客服：1010-5335"
         show-icon
         style="margin-bottom: 20px;"
+        :closable="false"
     />
 
     <!-- 信息确认提示 -->
@@ -36,92 +37,116 @@
 </template>
 
 <script setup>
-import {ElSteps, ElStep, ElAlert, ElTag, ElTable, ElTableColumn, ElButton, ElMessage} from 'element-plus'
-import {onBeforeUnmount, onMounted, ref} from 'vue'
-import {useOrderStore} from "@/stores/orderInfo";
-
+import { onBeforeUnmount, onMounted, ref, computed } from 'vue'
+import { useOrderStore } from "@/stores/orderInfo"
+import { getOrderDetails } from '@/api/orders'
+import { ElMessage } from 'element-plus'
+import { useRoute } from 'vue-router'
+import {useUserInfoStore} from "@/stores/userInfo";
+const route = useRoute()
 const orderStore = useOrderStore()
+const userInfoStore = useUserInfoStore();
+// 定义倒计时相关变量
+const orderCreateTime = ref(null)
+const expirationTime = ref(null)
 
-// 新增座位格式化函数
-const formatSeatNumber = (seatCode) => {
-  if (!seatCode) return '';
+// 从路由参数获取orderId
+const orderId=ref(null)
 
-  // 将数字转为字符串并补零到4位
-  const codeStr = String(seatCode).padStart(4, '0');
+// 订单信息
+const tableData = ref([{
+  film: '',
+  start_time: '',
+  end_time: '',
+  seat: '',
+}])
+const actualPay = ref(0)
 
-  // 提取排数和座位号
-  const row = parseInt(codeStr.substring(0, 2));
-  const seat = parseInt(codeStr.substring(2));
+// 计算剩余时间（秒）
+const remainingSeconds = computed(() => {
+  if (!expirationTime.value) return 0
+  return Math.max(0, Math.floor((expirationTime.value - Date.now()) / 1000))
+})
 
-  return `${row}排${seat}座`;
+// 格式化显示
+const countdownDisplay = computed(() => {
+  const mins = Math.floor(remainingSeconds.value / 60)
+  const secs = remainingSeconds.value % 60
+  return `${mins} 分 ${secs} 秒`
+})
+
+// 获取订单详情
+const fetchOrderDetails = async () => {
+  try {
+    if (!orderId.value) throw new Error('未找到订单信息');
+
+    const res = await getOrderDetails(orderId.value, userInfoStore.userInfo.id);
+    const data = res.data;
+
+    // 更新订单信息
+    tableData.value = [{
+      film: data.filmName || orderStore.filmInfo,
+      start_time: formatDateTime(data.session?.startTime) || orderStore.startTime,
+      end_time: formatDateTime(data.session?.endTime) || orderStore.endTime,
+      seat: data.seatNumbers || orderStore.seats
+    }];
+
+    actualPay.value = data.totalAmount || 0;
+    orderCreateTime.value = new Date(data.createdAt);
+    expirationTime.value = new Date(data.createdAt.getTime() + 15 * 60 * 1000); // 15分钟过期
+
+    startTimer(); // 启动倒计时
+  } catch (error) {
+    console.error('获取订单详情失败:', error);
+    ElMessage.error(error.message || '获取订单详情失败');
+    if (error.code === 40001) {
+      orderStore.clearOrder();
+      localStorage.removeItem('currentOrderId');
+    }
+  }
+};
+
+// 格式化日期时间
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return '';
+  const date = new Date(dateTime);
+  return isNaN(date) ? dateTime : date.toLocaleString();
 }
 
-
-
-// 倒计时相关变量
-const totalTime = 15 * 60 // 15分钟的总秒数
-const remainingTime = ref(totalTime)
-const timer = ref(null)
-const minutes = ref(0)
-const seconds = ref(0)
-
-// 格式化时间显示
-const formatTime = () => {
-  minutes.value = Math.floor(remainingTime.value / 60)
-  seconds.value = remainingTime.value % 60
-}
-
-// 开始倒计时
+// 定时器逻辑
+let timer = null
 const startTimer = () => {
-  timer.value = setInterval(() => {
-    remainingTime.value--
-    formatTime()
-
-    if (remainingTime.value <= 0) {
-      clearInterval(timer.value)
+  clearInterval(timer)
+  timer = setInterval(() => {
+    if (remainingSeconds.value <= 0) {
+      clearInterval(timer)
       handleTimeout()
     }
   }, 1000)
 }
 
-// 倒计时结束处理
 const handleTimeout = () => {
   ElMessage.error('订单已超时，请重新选择')
-  // 这里可以添加更多超时处理逻辑，如跳转页面或调用API取消订单
 }
-// 组件挂载时启动定时器
+
 onMounted(() => {
-  formatTime()
-  startTimer()
+  orderId.value = route.params.id
+  console.log('订单号为：'+orderId.value)
+  tableData.value.film =orderStore.filmInfo
+  tableData.value.start_time = orderStore.startTime
+  tableData.value.end_time = orderStore.endTime
+  tableData.value.seat = orderStore.seats
+  fetchOrderDetails()
 
-  // 正确更新tableData
-  tableData.value = [{
-    film: orderStore.filmInfo,
-    start_time: orderStore.startTime,
-    end_time: orderStore.endTime,
-    seat: orderStore.seats.map(s => s.seatNumber).join(', ')
-  }]
 })
 
-// 组件卸载前清除定时器
 onBeforeUnmount(() => {
-  if (timer.value) {
-    clearInterval(timer.value)
-  }
+  clearInterval(timer)
 })
-const tableData = ref([
-  {
-    film: '',
-    start_time: '',
-    end_time: '',
-    seat: '',
-  }
-])
-const actualPay = ref(65)
 
 const handlePay = () => {
-  // 这里可编写调用支付接口等逻辑，示例仅做简单提示
-  alert('确认支付，后续可完善支付流程逻辑')
+  // 支付逻辑
+  ElMessage.success('支付功能待实现')
 }
 </script>
 
