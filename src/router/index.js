@@ -10,7 +10,6 @@ import UserManagement from "@/views/user/UserManagement.vue";
 import MovieInfo from "@/views/movie/MovieInfo.vue";
 import SearchList from "@/views/SearchList.vue";
 import chooseSessions from "@/views/choose/chooseSessions.vue";
-import chooseSeat from "@/views/choose/chooseSeat.vue";
 import seatSelection from "@/views/choose/seatSelection.vue";
 import OrderDetail from "@/views/order/OrderDetail.vue";
 import MovieList from "@/views/movie/MovieList.vue";
@@ -29,12 +28,6 @@ const routes = [
   {path: '/movie/:id', component: moviedetails},
   {path: '/SearchList', component: SearchList},
   {path: '/chooseSessions/:id', component: chooseSessions},
-  {
-    path: '/choose-seat/:movieId/:sessionId',
-    name: 'chooseSeat',
-    component: chooseSeat,
-    props: true
-  },
   {
     path: '/seat-selection/:movieId/:sessionId',
     name: 'seatSelection',

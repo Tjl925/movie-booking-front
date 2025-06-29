@@ -169,10 +169,8 @@ import dayjs from 'dayjs'
 import { useRoute } from 'vue-router'
 import { useRouter } from 'vue-router'
 import { ElMessage,ElLoading } from 'element-plus'
-import {
-  getMovieById,
-  getSeatsForSelection
-} from "@/api/user"
+import { getMovieById } from "@/api/movie"
+import { getSeatsForSelection } from "@/api/session"
 import {
   VideoCamera,
   Clock,
@@ -268,7 +266,7 @@ const loadSeats = async () => {
       // 初始化函数
       const initSeatMap = () => Array(rows).fill().map((_, rowIndex) =>
           Array(cols).fill().map((_, colIndex) => ({
-            status: 'OCCUPIED',
+            status: 'AVAILABLE',
             seatRow: rowIndex + 1,
             seatColumn: colIndex + 1,
             id: null,
@@ -309,7 +307,6 @@ const loadSeats = async () => {
 };
 
 // 纯前端座位选择（完全不考虑后端状态）
-// 修改selectSeat方法，确保状态一致性
 const selectSeat = (rowIndex, seatIndex) => {
   const seat = frontSeatsInfo.value[rowIndex][seatIndex];
   const seatKey = `${rowIndex}-${seatIndex}`;
@@ -409,24 +406,12 @@ const confirmOrder = async () => {
       // 4. 调用API创建订单
       const orderData = {
         sessionId: Number(sessionId),
-        movieId: Number(movieId),
-        userId: userInfoStore.userInfo.id,
-        phone: form.value.phone,
-        seatIds: seatsToCheck.map(seat => seat.seatId),
-        seatDetails: seatDetails, // 新增座位详情
-        totalPrice: totalPrice.value,
-        movieTitle: movie.value.title,
-        sessionInfo: {
-          hallName: session.value.hallName,
-          showTime: `${session.value.showDate} ${session.value.startTime}`
-        }
+        seatIds: seatsToCheck.map(seat => seat.seatId)
       };
 
-      console.log(orderData);
       const res = await createOrder(orderData, userInfoStore.userInfo.id);
-      console.log(res.data);
+      console.log('创建订单响应', res.data);
       if (res.status) {
-        console.log(res.data)
         const seatIds = res.data.orderItems.map(item => item.seatId)
         const seatsInfo = await Promise.all(
             seatIds.map(id => getById(id).then(r => r.data))

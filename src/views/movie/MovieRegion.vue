@@ -5,7 +5,7 @@
         <span>电影区域管理</span>
       </div>
     </template>
-    <el-table :data="regionList" height="500">
+    <el-table :data="regionList" height="540">
       <el-table-column prop="name" label="区域名称" />
       <el-table-column prop="movieCount" label="电影数量"/>
       <el-table-column label="操作"  fixed="right">
@@ -67,8 +67,8 @@
         <el-table-column label="海报" width="140" align="center">
           <template #default="scope">
             <el-image
-                style="width: 100px; height: 100px"
-                :src="scope.row.posterUrl"
+                style="width: 100px; height: 120px"
+                :src="getUrl(scope.row.posterUrl)"
                 :preview-src-list="[scope.row.posterUrl]"
                 fit="cover"
             />
@@ -79,7 +79,7 @@
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
-          :page-sizes="[5, 10, 20, 30, 50]"
+          :page-sizes="[10, 20, 30, 50]"
           layout="total, sizes, prev, pager, next, jumper"
           :total="total"
           @size-change="handleSizeChange"
@@ -122,6 +122,10 @@ const rules = {
     { min: 1, max: 50, message: '长度在 1 到 50 个字符', trigger: 'blur' }
   ]
 };
+
+const getUrl =(url)=>{
+  return `http://127.0.0.1:8888/uploads${url}`;
+}
 
 // 获取区域列表
 const fetchRegionList = async () => {

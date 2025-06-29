@@ -212,7 +212,7 @@ onMounted(() => {
     <el-table
         :data="userGroups"
         border
-        height="430"
+        height="530"
         style="width: 100%"
         v-loading="groupLoading"
         element-loading-text="加载中..."

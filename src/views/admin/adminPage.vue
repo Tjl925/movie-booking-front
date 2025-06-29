@@ -7,6 +7,7 @@ import UserGroupManagement from "../user/UserGroupManagement.vue";
 import MovieInfo from "../movie/MovieInfo.vue";
 import MovieGenre from "../movie/MovieGenre.vue";
 import MovieRegion from "../movie/MovieRegion.vue";
+import MovieSession from "../movie/MovieSession.vue";
 
 // 当前激活的菜单项
 const activeMenu = ref('1'); // 默认显示用户列表
@@ -50,8 +51,13 @@ const handleMenuClick = (menuIndex) => {
           <movie-region />
         </div>
         
+        <!-- 场次管理内容 -->
+        <div v-if="activeMenu === '3-5'" class="content-panel">
+          <movie-session />
+        </div>
+        
         <!-- 其他菜单项的内容区域，可以根据需要添加 -->
-        <div v-if="activeMenu !== '2-1' && activeMenu !== '2-2' && activeMenu !== '3-1' && activeMenu !== '3-2' && activeMenu !== '3-3'" class="content-panel">
+        <div v-if="activeMenu !== '2-1' && activeMenu !== '2-2' && activeMenu !== '3-1' && activeMenu !== '3-2' && activeMenu !== '3-3' && activeMenu !== '3-5'" class="content-panel">
           <el-empty description="暂未实现该功能，敬请期待" />
         </div>
       </div>

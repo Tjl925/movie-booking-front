@@ -5,7 +5,7 @@ export const register = (registerDTO) => request.post('/api/auth/register', regi
 export const getShowingMoives=(current,size)=>request.get('/api/movies/public/showing', {current,size})
 export const getUpcomingMovies=(current,size)=>request.get('/api/movies/public/coming', {current,size})
 export const getTop10Movies=()=>request.get('/api/movies/public/top10', {})
-export const getMovieById=(id)=>request.get(`/api/movies/public/${id}`)
+
 export const logout = (token) => request.post('/api/auth/logout', token)
 export const updateUserProfile = (id, updateDTO) =>
     request.post(`/api/users/profile/${id}`, updateDTO)
@@ -21,4 +21,3 @@ export const uploadAvatar = (userId, file) => {
 export const getSearchList = (current,size,key) => request.get('/api/movies/public/search', {params:current, size, key})
 export const changePassword = (ChangePasswordDTO) => request.post('http://localhost:8888/api/users/change-password', ChangePasswordDTO);
 export const getSessionInfosByMovieId = (movieId) => request.get(`/api/sessions/public/movie/${movieId}/session-infos`);
-export const getSeatsForSelection = (id)=>request.get(`/api/sessions/public/${id}/seat-selection`);

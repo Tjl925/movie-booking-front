@@ -49,9 +49,8 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import {getMovieById, getSearchList} from '@/api/user';
+import {getSearchList} from '@/api/user';
 import TopNav from '@/views/components/TopNav.vue';
-import { ElMessage } from 'element-plus';
 
 const route = useRoute();
 const router = useRouter();

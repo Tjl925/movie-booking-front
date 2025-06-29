@@ -3,7 +3,9 @@ import { ref, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus } from '@element-plus/icons-vue';
 import MovieForm from '@/views/components/MovieForm.vue';
-import { getMovieList, deleteMovie } from '@/api/movie';
+import SessionForm from '@/views/components/SessionForm.vue';
+import { getMovieList, deleteMovie, updateMovieStatus } from '@/api/movie';
+import { getMovieSessionList } from '@/api/session';
 
 // 电影管理相关数据和方法
 const movieSearchKeyword = ref('');
@@ -15,6 +17,13 @@ const movieFormVisible = ref(false);
 const currentMovie = ref({});
 const isEditMovie = ref(false);
 const statusFilter = ref(''); // 电影状态筛选
+
+// 场次管理相关数据
+const sessionFormVisible = ref(false);
+const currentSession = ref({});
+const isEditSession = ref(false);
+const sessionList = ref([]);
+const sessionLoading = ref(false);
 
 // 电影状态选项
 const statusOptions = [
@@ -78,6 +87,12 @@ const handleEditMovie = (row) => {
 };
 
 const handleDeleteMovie = (row) => {
+  // 如果电影已经是下架状态，不允许再次下架
+  if (row.status === 'ENDED') {
+    ElMessage.warning('该电影已下架');
+    return;
+  }
+  
   ElMessageBox.confirm(
       `确定要下架电影 "${row.title}" 吗？`,
       '警告',
@@ -100,6 +115,46 @@ const handleDeleteMovie = (row) => {
       .catch(() => {
         // 取消删除
       });
+};
+
+// 处理电影上映
+const handleReleaseMovie = (row) => {
+  // 如果电影已经是上映中状态，不允许再次上映
+  if (row.status === 'NOW_SHOWING') {
+    ElMessage.warning('该电影已上映');
+    return;
+  }
+  
+  ElMessageBox.confirm(
+      `确定要将电影 "${row.title}" 设置为上映中吗？`,
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info',
+      }
+  )
+      .then(async () => {
+        try {
+          await updateMovieStatus(row.id, 'NOW_SHOWING');
+          ElMessage.success('电影已设置为上映中');
+          fetchMovieList();
+        } catch (error) {
+          console.error('设置上映状态失败:', error);
+          ElMessage.error('设置上映状态失败');
+        }
+      })
+      .catch(() => {
+        // 取消操作
+      });
+};
+
+// 处理场次分配
+const handleAssignSession = (row) => {
+  currentMovie.value = { ...row };
+  isEditSession.value = false;
+  currentSession.value = {};
+  sessionFormVisible.value = true;
 };
 
 // 获取状态类型
@@ -136,7 +191,12 @@ onMounted(() => {
   <el-card class="page-container">
     <template #header>
       <div class="header">
-        <span>电影管理</span>
+        <div class="head-container">
+          <span>电影管理</span>
+          <div class="button-container">
+            <el-button type="primary" :icon="Plus" @click="handleAddMovie">上架电影</el-button>
+          </div>
+        </div>
         <div class="search-box">
           <div class="search-item">
             <el-input
@@ -168,10 +228,7 @@ onMounted(() => {
         </div>
       </div>
     </template>
-    <div class="button-container">
-      <el-button type="primary" :icon="Plus" @click="handleAddMovie">上架电影</el-button>
-    </div>
-    <el-table :data="movieList" height="430" border style="width: 100%">
+    <el-table :data="movieList" height="480" border style="width: 100%">
       <el-table-column type="expand">
         <template #default="props">
           <el-descriptions border :column="4" size="small">
@@ -183,9 +240,8 @@ onMounted(() => {
             >
               <el-image
                 v-if="props.row.posterUrl"
-                style="width: 50px; height: 50px"
-                :src="props.row.posterUrl"
-                fit="contain"
+                style="width: 50px; height: 70px"
+                :src="getFullUrl(props.row.posterUrl)"
               />
               <span v-else>暂无海报</span>
             </el-descriptions-item>
@@ -241,21 +297,39 @@ onMounted(() => {
       <el-table-column label="海报" width="140">
         <template #default="scope">
           <el-image
-            style="width: 70px; height: 70px"
-            :src="scope.row.posterUrl"
+            style="width: 100px; height: 120px"
+            :src="getFullUrl(scope.row.posterUrl)"
             fit="cover"
-            :preview-src-list="scope.row.posterUrl ? [scope.row.posterUrl] : []"
           />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column label="操作" width="180" fixed="right">
         <template #default="scope">
-          <el-button size="small" @click="handleEditMovie(scope.row)">编辑</el-button>
-          <el-button 
-            size="small" 
-            type="danger" 
-            @click="handleDeleteMovie(scope.row)"
-          >下架</el-button>
+          <div class="operation-buttons">
+            <div class="button-row">
+              <el-button size="small" @click="handleEditMovie(scope.row)">编辑</el-button>
+              <el-button 
+                size="small" 
+                type="warning" 
+                @click="handleAssignSession(scope.row)"
+              >分配</el-button>
+            </div>
+            <div class="button-row">
+              <el-button 
+                size="small" 
+                type="success" 
+                @click="handleReleaseMovie(scope.row)"
+                :disabled="scope.row.status === 'NOW_SHOWING'"
+              >上映</el-button>
+              <el-button 
+                size="small" 
+                type="danger" 
+                @click="handleDeleteMovie(scope.row)"
+                :disabled="scope.row.status === 'ENDED'"
+              >下架</el-button>
+            </div>
+
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -278,6 +352,15 @@ onMounted(() => {
       :is-edit="isEditMovie"
       @refresh="fetchMovieList"
     />
+    
+    <!-- 场次表单组件 -->
+    <session-form
+      v-model:visible="sessionFormVisible"
+      :movie-data="currentMovie"
+      :session-data="currentSession"
+      :is-edit="isEditSession"
+      @refresh="fetchMovieList"
+    />
   </el-card>
 </template>
 
@@ -290,6 +373,12 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.head-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
 .search-box {
@@ -312,8 +401,60 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-.button-container {
+.operation-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.button-row {
+  display: flex;
+  gap: 5px;
+}
+
+/* 场次列表弹窗样式 */
+.session-list-container {
+  padding: 10px;
+}
+
+.session-list-container h3 {
+  margin-top: 0;
   margin-bottom: 15px;
+  text-align: center;
+}
+
+.session-table {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.session-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.session-table th,
+.session-table td {
+  border: 1px solid #ebeef5;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.session-table th {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: 500;
+}
+
+.session-table tr:hover td {
+  background-color: #f5f7fa;
+}
+
+.loading,
+.empty {
+  text-align: center;
+  padding: 20px;
+  color: #909399;
 }
 
 /* 展开行样式 */
