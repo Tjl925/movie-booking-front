@@ -43,6 +43,7 @@ const handleSelect = (key: string, keyPath: string[]) => {
       <el-menu-item index="3-2">电影类型</el-menu-item>
       <el-menu-item index="3-3">电影区域</el-menu-item>
       <el-menu-item index="3-4">影厅信息</el-menu-item>
+      <el-menu-item index="3-5">场次管理</el-menu-item>
     </el-sub-menu>
     <el-sub-menu index="4">
       <template #title>

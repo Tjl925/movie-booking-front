@@ -5,7 +5,7 @@
     width="50%"
     @close="handleClose"
   >
-    <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
+    <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
       <el-form-item label="电影名称" prop="title">
         <el-input v-model="form.title" placeholder="请输入电影名称"></el-input>
       </el-form-item>
@@ -53,22 +53,33 @@
       <el-form-item label="国家/地区" prop="country">
         <el-input v-model="form.country" placeholder="请输入国家/地区"></el-input>
       </el-form-item>
+      <el-form-item label="基础票价" prop="basePrice">
+        <el-input-number v-model="form.basePrice" :min="0" :precision="2" :step="5" placeholder="请输入基础票价"></el-input-number>
+      </el-form-item>
       <el-form-item label="海报" prop="posterUrl">
+        <el-image
+          v-if="form.posterUrl"
+          :src="getUrl(form.posterUrl)"
+          style="width: 150px; height: 200px"
+        ></el-image>
         <el-upload
           class="avatar-uploader"
-          action="#"
-          :http-request="uploadPoster"
+          action=""
+          :auto-upload="false"
           :show-file-list="false"
-          :before-upload="beforeAvatarUpload"
+          :on-change="handlePosterChange"
+          style="margin-left: 20px"
         >
-          <img v-if="form.posterUrl" :src="form.posterUrl" class="avatar" />
-          <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+          <el-button type="primary">选择新海报</el-button>
+          <template #tip>
+            <div class="el-upload__tip">支持 JPG/PNG 格式，大小不超过 2MB</div>
+          </template>
         </el-upload>
       </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="handleClose">取消</el-button>
         <el-button type="primary" @click="submitForm">确认</el-button>
       </span>
     </template>
@@ -76,10 +87,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, defineProps, defineEmits } from 'vue';
+import { ref, watch, defineProps, defineEmits } from 'vue';
 import { ElMessage } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
-import { createMovie, updateMovie, uploadPoster as uploadPosterApi } from '@/api/movie';
+import {createMovie, updateMovie, uploadPoster} from '@/api/movie';
 
 const props = defineProps({
   visible: {
@@ -99,21 +110,50 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'refresh']);
 
 const dialogVisible = ref(false);
-const formRef = ref(null);
+
+const posterFile = ref(null);
+const trailerFile = ref(null);
 
 // 表单数据
-const form = reactive({
-  title: '',
-  description: '',
-  director: '',
-  actors: '',
-  genre: '',
-  durationMinutes: 90,
-  language: '',
-  releaseDate: '',
-  endDate: '',
-  country: '',
-  posterUrl: ''
+const form = ref({});
+
+// 监听props.visible变化，同步到dialogVisible
+watch(() => props.visible, (newVal, oldVal) => {
+  dialogVisible.value = newVal;
+  if (newVal) {
+    // 当对话框打开时，根据isEdit决定是否填充数据
+    if (props.isEdit) {
+      // 编辑模式：复制movieData到表单
+      form.value = { ...props.movieData };
+    } else {
+      // 添加模式：重置表单为空
+      form.value = {
+        title: '',
+        description: '',
+        director: '',
+        actors: '',
+        genre: '',
+        durationMinutes: 90,
+        language: '',
+        releaseDate: '',
+        endDate: '',
+        country: '',
+        posterUrl: '',
+        basePrice: 30.00
+      };
+    }
+  } else if (oldVal && !newVal) {
+    // 当对话框关闭时，清除文件引用
+    if (posterFile.value) {
+      URL.revokeObjectURL(posterFile.value);
+      posterFile.value = null;
+    }
+  }
+}, { immediate: true });
+
+// 监听dialogVisible变化，同步回props.visible
+watch(() => dialogVisible.value, (newVal) => {
+  emit('update:visible', newVal);
 });
 
 // 表单验证规则
@@ -122,7 +162,7 @@ const rules = {
     { required: true, message: '请输入电影名称', trigger: 'blur' },
     { min: 1, max: 100, message: '长度在 1 到 100 个字符', trigger: 'blur' }
   ],
-  durationInMinutes: [
+  durationMinutes: [
     { required: true, message: '请输入电影时长', trigger: 'blur' },
     { type: 'number', min: 1, message: '时长必须大于0', trigger: 'blur' }
   ],
@@ -132,79 +172,79 @@ const rules = {
   endDate: [
     { required: true, message: '请选择下映日期', trigger: 'change' }
   ],
+  director: [
+    { required: true, message: '请输入导演姓名', trigger: 'blur' }
+  ],
+  genre: [
+    { required: true, message: '请输入电影类型', trigger: 'blur' }
+  ],
+  language: [
+    { required: true, message: '请输入电影语言', trigger: 'blur' }
+  ],
+  country: [
+    { required: true, message: '请输入国家/地区', trigger: 'blur' }
+  ],
+  basePrice: [
+    { required: true, message: '请输入基础票价', trigger: 'blur' },
+    { type: 'number', min: 0, message: '票价不能为负数', trigger: 'blur' }
+  ]
 };
 
-// 监听visible属性变化
-watch(() => props.visible, (newVal) => {
-  dialogVisible.value = newVal;
-  if (newVal && props.isEdit && props.movieData) {
-    // 编辑模式，填充表单数据
-    Object.keys(form).forEach(key => {
-      if (props.movieData[key] !== undefined) {
-        form[key] = props.movieData[key];
-      }
-    });
-  } else if (newVal) {
-    // 添加模式，重置表单
-    resetForm();
-  }
-});
+const getUrl =(url)=>{
+  return `http://127.0.0.1:8888/uploads${url}`;
+}
 
-// 监听dialogVisible变化，同步到父组件
-watch(dialogVisible, (newVal) => {
-  emit('update:visible', newVal);
-});
+const handlePosterChange = async (file) => {
+  // 验证文件类型和大小
+  const isJpgOrPng = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png';
+  const isLt2M = file.raw.size / 1024 / 1024 < 2;
 
-// 重置表单
-const resetForm = () => {
-  if (formRef.value) {
-    formRef.value.resetFields();
-  }
-  form.title = '';
-  form.description = '';
-  form.director = '';
-  form.actors = '';
-  form.genre = '';
-  form.durationMinutes = 90;
-  form.language = '';
-  form.releaseDate = '';
-  form.endDate = '';
-  form.country = '';
-  form.posterUrl = '';
-};
-
-// 关闭对话框
-const handleClose = () => {
-  dialogVisible.value = false;
-  resetForm();
-};
-
-// 上传海报前的验证
-const beforeAvatarUpload = (file) => {
-  const isJPG = file.type === 'image/jpeg';
-  const isPNG = file.type === 'image/png';
-  const isLt2M = file.size / 1024 / 1024 < 2;
-
-  if (!isJPG && !isPNG) {
-    ElMessage.error('上传头像图片只能是 JPG 或 PNG 格式!');
+  if (!isJpgOrPng) {
+    ElMessage.error('只能上传 JPG/PNG 格式的图片!');
     return false;
   }
   if (!isLt2M) {
-    ElMessage.error('上传头像图片大小不能超过 2MB!');
+    ElMessage.error('图片大小不能超过 2MB!');
+    return false;
+  }
+
+  try {
+    // 先释放之前的URL
+    if (posterFile.value) {
+      URL.revokeObjectURL(posterFile.value);
+    }
+    posterFile.value = file.raw;
+
+    // 立即上传图片到后端
+    // 如果是编辑模式且有ID，使用ID上传；否则使用临时ID
+    const movieId = props.isEdit && props.movieData.id ? props.movieData.id : 'temp';
+    const uploadRes = await uploadPoster(movieId, posterFile.value);
+    const posterUrl = uploadRes.data; // 假设返回的是海报URL字符串
+    form.value.posterUrl = posterUrl; // 让用户立即看到新海报
+    ElMessage.success('海报上传成功');
+  } catch (error) {
+    console.error('海报上传失败:', error);
+    ElMessage.error('海报上传失败');
     return false;
   }
   return true;
 };
 
-// 上传海报
-const uploadPoster = async (options) => {
-  try {
-    const response = await uploadPosterApi(options.file);
-    form.posterUrl = response.data;
-    ElMessage.success('上传成功');
-  } catch (error) {
-    console.error('上传失败:', error);
-    ElMessage.error('上传失败');
+// 表单引用
+const formRef = ref(null);
+
+// 关闭对话框
+const handleClose = () => {
+  dialogVisible.value = false;
+  emit('update:visible', false);
+  // 重置表单
+  if (formRef.value) {
+    formRef.value.resetFields();
+  }
+  // 清除文件引用
+  if (posterFile.value) {
+    URL.revokeObjectURL(posterFile.value);
+    posterFile.value = null;
   }
 };
 
@@ -216,10 +256,10 @@ const submitForm = async () => {
     if (valid) {
       try {
         // 准备提交的数据
-        const movieData = { ...form };
+        const movieData = { ...form.value };
         if (props.isEdit) {
           // 编辑模式
-          await updateMovie(props.movieData.id, movieData);
+          await updateMovie(movieData.id, movieData);
           ElMessage.success('电影更新成功');
         } else {
           // 添加模式
@@ -228,8 +268,17 @@ const submitForm = async () => {
         }
         
         dialogVisible.value = false;
-        resetForm();
+        emit('update:visible', false); // 更新父组件的visible属性
         emit('refresh'); // 通知父组件刷新数据
+        
+        // 重置表单
+        formRef.value.resetFields();
+        
+        // 清除文件引用
+        if (posterFile.value) {
+          URL.revokeObjectURL(posterFile.value);
+          posterFile.value = null;
+        }
       } catch (error) {
         console.error('提交失败:', error);
         ElMessage.error('操作失败: ' + (error.message || '未知错误'));
@@ -242,14 +291,8 @@ const submitForm = async () => {
 </script>
 
 <style scoped>
-.avatar-uploader .avatar {
-  width: 178px;
-  height: 178px;
-  display: block;
-}
-
 .avatar-uploader .el-upload {
-  border: 1px dashed var(--el-border-color);
+  border: 1px dashed #d9d9d9;
   border-radius: 6px;
   cursor: pointer;
   position: relative;
@@ -264,9 +307,15 @@ const submitForm = async () => {
 .avatar-uploader-icon {
   font-size: 28px;
   color: #8c939d;
-  width: 178px;
-  height: 178px;
+  width: 150px;
+  height: 200px;
   text-align: center;
-  line-height: 178px;
+  line-height: 200px;
+}
+
+.el-upload__tip {
+  margin-top: 8px;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
 }
 </style>

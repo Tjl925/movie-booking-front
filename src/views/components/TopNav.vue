@@ -3,7 +3,7 @@ import { ref } from 'vue';
 import { ArrowDown } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from "element-plus";
-import {register, updateUserProfile, uploadAvatar, changePassword, getMovieById} from "@/api/user"; // 修改导入的API
+import {register, updateUserProfile, uploadAvatar, changePassword} from "@/api/user";
 import { useUserInfoStore } from '@/stores/userInfo';
 import { onBeforeUnmount } from 'vue';
 

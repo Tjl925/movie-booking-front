@@ -3,6 +3,8 @@ import request from "@/utils/request";
 // 获取电影列表
 export const getMovieList = (params) => request.get('/api/movies/admin', { params });
 
+export const getMovieById=(id)=>request.get(`/api/movies/public/${id}`)
+
 // 创建电影
 export const createMovie = (data) => request.post('/api/movies', data);
 
@@ -16,10 +18,10 @@ export const deleteMovie = (id) => request.delete(`/api/movies/${id}`);
 export const updateMovieStatus = (id, status) => request.put(`/api/movies/${id}/status?status=${status}`);
 
 // 上传电影海报
-export const uploadPoster = (file) => {
+export const uploadPoster = (movieId, file) => {
   const formData = new FormData();
   formData.append('file', file);
-  return request.post('/api/movies/poster/upload', formData, {
+  return request.post(`/api/movies/${movieId}/poster`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -27,10 +29,10 @@ export const uploadPoster = (file) => {
 };
 
 // 上传电影视频
-export const uploadVideo = (file) => {
+export const uploadVideo = (movieId, file) => {
   const formData = new FormData();
   formData.append('file', file);
-  return request.post('/api/movies/video/upload', formData, {
+  return request.post('/api/movies/${movieId}/video', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }

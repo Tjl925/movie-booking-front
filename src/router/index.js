@@ -10,9 +10,9 @@ import UserManagement from "@/views/user/UserManagement.vue";
 import MovieInfo from "@/views/movie/MovieInfo.vue";
 import SearchList from "@/views/SearchList.vue";
 import chooseSessions from "@/views/choose/chooseSessions.vue";
-import chooseSeat from "@/views/choose/chooseSeat.vue";
 import seatSelection from "@/views/choose/seatSelection.vue";
 import OrderDetail from "@/views/order/OrderDetail.vue";
+import PaymentSuccess from "@/views/order/PaymentSuccess.vue";
 
 
 
@@ -29,18 +29,13 @@ const routes = [
   {path: '/SearchList', component: SearchList},
   {path: '/chooseSessions/:id', component: chooseSessions},
   {
-    path: '/choose-seat/:movieId/:sessionId',
-    name: 'chooseSeat',
-    component: chooseSeat,
-    props: true
-  },
-  {
     path: '/seat-selection/:movieId/:sessionId',
     name: 'seatSelection',
     component: seatSelection,
     props: true
   },
   {path: '/order/:id', component: OrderDetail},
+  {path: '/payment-success/:id', component: PaymentSuccess},
 ]
 
 // 创建路由器

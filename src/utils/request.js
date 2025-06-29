@@ -12,7 +12,7 @@ instance.interceptors.request.use(
     config => {
       // 从store中获取token
       const userInfoStore = useUserInfoStore();
-      const token = userInfoStore.userInfo.token;
+      const token = userInfoStore.token;
       
       // 如果有token，添加到请求头
       if (token) {

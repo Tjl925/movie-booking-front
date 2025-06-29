@@ -78,7 +78,8 @@ import {
 import { VideoPlay } from '@element-plus/icons-vue' // 关键修复点
 import dayjs from 'dayjs'
 import TopNav from "@/views/components/TopNav.vue";
-import {getMovieById} from "@/api/user"
+import { getMovieById } from "@/api/movie";
+
 // 接收路由参数
 const route = useRoute();
 const router = useRouter();
