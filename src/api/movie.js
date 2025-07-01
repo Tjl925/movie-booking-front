@@ -62,3 +62,10 @@ export const deleteMoviesByRegion = (region) => request.delete(`/api/movies/regi
 
 // 更新电影区域
 export const updateMoviesByRegion = (oldRegion, newRegion) => request.put(`/api/movies/regions/${oldRegion}?newRegion=${newRegion}`);
+
+//推荐电影
+export const getMovieRecommendations = (movieId, limit = 5) =>
+    request.get(`/api/movies/public/${movieId}/recommendations`, {
+      params: { limit }
+    });
+export const getBestBoxOfficeMovies=()=>request.get('/api/movies/public/boxOffice', {})

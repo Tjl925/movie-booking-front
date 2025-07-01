@@ -126,6 +126,8 @@ import { ref, computed, onMounted } from 'vue';
 import TopNav from '../components/TopNav.vue';
 import {getShowingMoives, getUpcomingMovies} from "@/api/user"
 import router from "@/router";
+import route from "@vueup/vue-quill/dist/vue-quill.global";
+import {useRoute} from "vue-router";
 const activeTab = ref('nowShowing');
 // 筛选条件
 const selectedType = ref('all');
@@ -290,6 +292,11 @@ const handleCurrentChange = (newPage) => {
 
 // 初始化数据
 onMounted(() => {
+
+  const route = useRoute();
+  if (route.query.tab === 'upComing') {
+    activeTab.value = 'upComing';
+  }
   getMovies();
 });
 </script>

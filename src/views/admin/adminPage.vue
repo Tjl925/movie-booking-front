@@ -8,6 +8,7 @@ import MovieInfo from "../movie/MovieInfo.vue";
 import MovieGenre from "../movie/MovieGenre.vue";
 import MovieRegion from "../movie/MovieRegion.vue";
 import MovieSession from "../movie/MovieSession.vue";
+import Home from "../Home.vue";
 
 // 当前激活的菜单项
 const activeMenu = ref('1'); // 默认显示用户列表
@@ -26,6 +27,9 @@ const handleMenuClick = (menuIndex) => {
         <sub-menu1 @menu-click="handleMenuClick"/>
       </div>
       <div class="main-content">
+        <div v-if="activeMenu === '1'" class="content-panel">
+          <Home />
+        </div>
         <!-- 用户列表内容 -->
         <div v-if="activeMenu === '2-1'" class="content-panel">
           <user-management />

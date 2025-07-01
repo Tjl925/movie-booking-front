@@ -219,13 +219,12 @@ const submitForm = async () => {
       const sessionData = {
         movieId: form.movieId,
         hallId: form.hallId,
-        sessionTime: form.sessionTime,
-        endTime: endTime
+        sessionTime: dayjs(form.sessionTime).format('YYYY-MM-DD HH:mm:ss')
       };
       
       try {
         if (props.isEdit) {
-          await updateSession(props.sessionData.id, sessionData);
+          await updateSession(sessionData);
           ElMessage.success('场次更新成功');
         } else {
           await createSession(sessionData);
@@ -236,7 +235,6 @@ const submitForm = async () => {
         emit('refresh');
       } catch (error) {
         console.error('保存场次失败:', error);
-        ElMessage.error('保存场次失败');
       }
     }
   });
