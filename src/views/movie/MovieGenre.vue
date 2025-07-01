@@ -192,6 +192,7 @@ const fetchMoviesByGenre = async () => {
       size: pageSize.value
     };
     const response = await getMoviesByGenre(currentGenre.value, params);
+
     moviesList.value = response.data.records;
     total.value = response.data.total;
   } catch (error) {
@@ -259,7 +260,7 @@ const submitForm = async () => {
         ElMessage.success('更新成功');
         dialogVisible.value = false;
         resetForm();
-        fetchGenreList(); // 刷新列表
+        await fetchGenreList(); // 刷新列表
       } catch (error) {
         console.error('提交失败:', error);
         ElMessage.error('操作失败: ' + (error.response?.data?.message || '未知错误'));

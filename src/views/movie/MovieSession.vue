@@ -1,8 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Search, Delete, Edit } from '@element-plus/icons-vue';
-import { getSessionList, deleteSession } from '@/api/session';
+import {ElLoading, ElMessage, ElMessageBox} from 'element-plus';
+import {Search, Delete, Edit, Grid} from '@element-plus/icons-vue';
+import {getSessionList, deleteSession, getSeatsForSelection} from '@/api/session';
 import SessionForm from '@/views/components/SessionForm.vue';
 import dayjs from 'dayjs';
 
@@ -67,6 +67,7 @@ const handleCurrentChange = (page) => {
 
 // 编辑场次
 const handleEditSession = (row) => {
+  console.log(row);
   currentSession.value = { ...row };
   currentMovie.value = row.movie || {};
   isEditSession.value = true;
@@ -98,6 +99,70 @@ const handleDeleteSession = (row) => {
       // 取消删除
     });
 };
+const frontSeatsInfo = ref([]); // 用于界面展示的座位状态
+const backSeatsInfo = ref([]);
+const seatDialogVisible=ref(false);
+const seatRows = ref([])
+const handleOpenSessionSeats= async (row)=>{
+  let loading = null
+  try {
+     loading = ElLoading.service({
+      lock: true,
+      text: '正在加载座位图...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    });
+
+    const response = await getSeatsForSelection(row.id);
+    console.log('座位数据:', response);
+
+    if (response.data) {
+      const rows = response.data.totalRows || 8;
+      const cols = response.data.totalColumns || 10;
+      // 初始化座位图
+      const initSeatMap = () => Array(rows).fill().map((_, rowIndex) =>
+          Array(cols).fill().map((_, colIndex) => ({
+            status: 'AVAILABLE',
+            seatRow: rowIndex + 1,
+            seatColumn: colIndex + 1,
+            id: null,
+            seatNumber: `${String.fromCharCode(65 + rowIndex)}${colIndex + 1}`
+          }))
+      );
+
+      frontSeatsInfo.value = initSeatMap();
+      backSeatsInfo.value = initSeatMap();
+
+      if (response.data.seatSessions) {
+        response.data.seatSessions.forEach(seatSession => {
+          const row = Number(seatSession.rowNumber) - 1;
+          const col = Number(seatSession.columnNumber) - 1;
+
+          if (row >= 0 && row < rows && col >= 0 && col < cols) {
+            const seatData = {
+              ...seatSession,
+              seatRow: seatSession.rowNumber,
+              seatColumn: seatSession.columnNumber,
+              seatNumber: `${String.fromCharCode(65 + row)}${col + 1}`,
+              status: seatSession.status || 'AVAILABLE'
+            };
+
+            frontSeatsInfo.value[row][col] = { ...seatData };
+            backSeatsInfo.value[row][col] = { ...seatData };
+          }
+        });
+      }
+      // 更新显示数据
+      seatRows.value = frontSeatsInfo.value;
+      seatDialogVisible.value = true;
+    }
+  } catch (error) {
+    console.error('加载座位失败:', error);
+    ElMessage.error('加载座位失败: ' + (error.message || '未知错误'));
+  } finally {
+    loading?.close();
+  }
+}
+
 
 // 格式化日期时间
 const formatDateTime = (dateTimeStr) => {
@@ -174,7 +239,7 @@ onMounted(() => {
       style="width: 100%" 
       v-loading="loading"
     >
-      <el-table-column label="电影" min-width="180">
+      <el-table-column label="电影" min-width="180" >
         <template #default="scope">
           <div class="movie-info">
             <el-image 
@@ -213,7 +278,7 @@ onMounted(() => {
           {{ formatDateTime(scope.row.endTime) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="150" fixed="right">
+      <el-table-column label="操作" width="250" fixed="right">
         <template #default="scope">
           <div class="operation-buttons">
             <el-button 
@@ -229,6 +294,13 @@ onMounted(() => {
               :icon="Delete"
               @click="handleDeleteSession(scope.row)"
             >删除</el-button>
+            <el-button
+                size="small"
+                type="warning"
+                :icon="Grid"
+                @click="handleOpenSessionSeats(scope.row)"
+            >查看</el-button>
+
           </div>
         </template>
       </el-table-column>
@@ -255,9 +327,172 @@ onMounted(() => {
       @refresh="fetchSessionList"
     />
   </el-card>
+  <el-dialog
+      title="影厅座位图"
+      v-model="seatDialogVisible"
+      width="800px"
+      top="5vh"
+  >
+    <div class="seat-map-container">
+      <div class="screen">银幕</div>
+
+      <div class="seat-grid">
+        <div
+            v-for="(row, rowIndex) in seatRows"
+            :key="rowIndex"
+            class="seat-row"
+        >
+          <div class="row-label">{{ String.fromCharCode(65 + rowIndex) }}</div>
+          <div
+              v-for="(seat, colIndex) in row"
+              :key="colIndex"
+              class="seat"
+              :class="{
+              'available': seat.status === 'AVAILABLE',
+              'reserved': seat.status === 'RESERVED',
+              'occupied': seat.status === 'OCCUPIED',
+              'maintenance': seat.status === 'MAINTENANCE'
+            }"
+          >
+            {{ seat.seatNumber }}
+          </div>
+        </div>
+      </div>
+
+      <div class="seat-legend">
+        <div class="legend-item" v-for="item in [
+          { type: 'available', text: '可选座位' },
+          { type: 'reserved', text: '已预定' },
+          { type: 'occupied', text: '已售出' },
+          { type: 'maintenance', text: '维修中' }
+        ]" :key="item.type">
+          <div :class="['legend-marker', item.type]"></div>
+          <span class="legend-text">{{ item.text }}</span>
+        </div>
+      </div>
+    </div>
+  </el-dialog>
 </template>
 
 <style scoped>
+
+.seat-map-container {
+  text-align: center;
+  padding: 20px;
+}
+
+.screen {
+  width: 80%;
+  height: 30px;
+  margin: 0 auto 30px;
+  background: linear-gradient(to bottom, #e0e0e0, #b0b0b0);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #333;
+  font-weight: bold;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.seat-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.seat-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.row-label {
+  width: 24px;
+  text-align: center;
+  font-weight: bold;
+  color: #666;
+}
+
+.seat {
+  width: 36px;
+  height: 36px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+  cursor: default;
+}
+
+.seat.available {
+  background-color: #f0f9eb;
+  border: 1px solid #67c23a;
+  color: #67c23a;
+}
+
+.seat.reserved {
+  background-color: #fdf6ec;
+  border: 1px solid #e6a23c;
+  color: #e6a23c;
+}
+
+.seat.occupied {
+  background-color: #fef0f0;
+  border: 1px solid #f56c6c;
+  color: #f56c6c;
+}
+
+.seat.maintenance {
+  background-color: #f4f4f5;
+  border: 1px solid #909399;
+  color: #909399;
+}
+
+.seat-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-marker {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+}
+
+.legend-marker.available {
+  background-color: #67c23a;
+}
+
+.legend-marker.reserved {
+  background-color: #e6a23c;
+}
+
+.legend-marker.occupied {
+  background-color: #f56c6c;
+}
+
+.legend-marker.maintenance {
+  background-color: #909399;
+}
+
+.legend-text {
+  font-size: 14px;
+  color: #666;
+}
+
+
+
 .page-container {
   margin-bottom: 20px;
 }

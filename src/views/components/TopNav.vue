@@ -113,7 +113,12 @@ const showRegister = () => {
 };
 const add = () => {
   register(registerDTO.value).then(res => {
+    console.log(res);
     if (res.status) {
+      userInfoStore.setUserInfo({
+        ...res.data.userInfo,
+        token: res.data.token
+      })
       ElMessage.success('注册成功啦！');
       dialogVisible.value = false;
     } else {

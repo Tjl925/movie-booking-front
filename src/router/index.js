@@ -13,8 +13,13 @@ import chooseSessions from "@/views/choose/chooseSessions.vue";
 import seatSelection from "@/views/choose/seatSelection.vue";
 import OrderDetail from "@/views/order/OrderDetail.vue";
 import MovieList from "@/views/movie/MovieList.vue";
+import QQAuthRedirect from "@/views/user/QQAuthRedirect.vue";
 
-
+/* eslint-disable no-unused-vars */
+/**
+ * @typedef {Object} RouteMeta
+ * @property {boolean} [skipAuth] - 是否跳过认证
+ */
 
 // 定义路由关系
 const routes = [
@@ -36,6 +41,16 @@ const routes = [
   },
   {path: '/order/:id', component: OrderDetail},
   {path: '/MovieList', component: MovieList},
+  {
+    path: '/qq-auth-redirect',
+    component: QQAuthRedirect,
+    meta: { skipAuth: true }  // 注意：meta 要放在路由对象内部
+  },
+  {  // 注意：每个路由对象之间要用逗号分隔
+    path: '/bind-qq',
+    component: () => import('@/views/user/QQBind.vue'),
+    meta: { skipAuth: true }
+  }
 ]
 
 // 创建路由器
@@ -48,7 +63,10 @@ router.beforeEach((to, from, next) => {
   // 获取用户信息
   const userInfoStore = useUserInfoStore();
   const userInfo = userInfoStore.userInfo;
-
+  if (to.meta.skipAuth) {// eslint-disable-line no-undef
+    next();
+    return;
+  }
   // 登录页面允许直接访问
   if (to.path === '/Login') {
     next();
