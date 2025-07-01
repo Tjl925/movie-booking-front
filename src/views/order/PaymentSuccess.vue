@@ -26,7 +26,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { CircleCheckFilled } from '@element-plus/icons-vue'
-import { getOrderDetail } from '@/api/orders'
+import {getBySeatId, getOrderDetail} from '@/api/orders'
 import { useUserInfoStore } from '@/stores/userInfo'
 
 const route = useRoute()
@@ -45,6 +45,7 @@ const fetchOrderDetails = async () => {
   try {
     // 从路由参数获取订单ID
     const id = route.params.id
+    console.log('订单ID:', id)
     if (!id) {
       ElMessage.error('订单信息不存在')
       return
@@ -55,13 +56,15 @@ const fetchOrderDetails = async () => {
     const data = res.data
 
     // 更新订单信息
-    filmName.value = data.filmName || ''
+    const seatIds = data.orderItems?.map(item => item.seatId);
+    const seats = await Promise.all(seatIds.map(id => getBySeatId(id).then(r => r.data))) || orderStore.seats;
+    filmName.value = data.session.movie.title || ''
     sessionTime.value = formatDateTime(data.session?.sessionTime) || ''
-    seatInfo.value = data.seatNumbers || ''
+    seatInfo.value = seats.map(seat => `${seat.seatRow}排${seat.seatColumn}座`).join('，') || ''
     amount.value = data.totalAmount || 0
   } catch (error) {
     console.error('获取订单详情失败:', error)
-    ElMessage.error(error.message || '获取订单详情失败')
+    await router.push('/')
   }
 }
 
@@ -79,7 +82,7 @@ const goToHome = () => {
 
 // 查看订单详情
 const viewOrderDetail = () => {
-  router.push(`/user/orders`)
+  router.push(`/user-orders/${userInfoStore.userInfo.id}`)
 }
 
 onMounted(() => {

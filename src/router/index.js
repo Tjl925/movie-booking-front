@@ -3,12 +3,12 @@ import Home from "@/views/Home.vue";
 import Login from "@/views/Login.vue";
 import adminPage from "@/views/admin/adminPage.vue";
 import superadminPage from "@/views/superadmin/superadminPage.vue";
-import moviedetails from "@/views/movie/moviedetails.vue";
 import { useUserInfoStore } from '@/stores/userInfo';
 import { ElMessage } from 'element-plus';
 import UserManagement from "@/views/user/UserManagement.vue";
-import MovieInfo from "@/views/movie/MovieInfo.vue";
 import SearchList from "@/views/SearchList.vue";
+import movieDetails from "@/views/movie/moviedetails.vue";
+import MovieInfo from "@/views/movie/MovieInfo.vue";
 import chooseSessions from "@/views/choose/chooseSessions.vue";
 import seatSelection from "@/views/choose/seatSelection.vue";
 import OrderDetail from "@/views/order/OrderDetail.vue";
@@ -20,6 +20,10 @@ import QQAuthRedirect from "@/views/user/QQAuthRedirect.vue";
  * @typedef {Object} RouteMeta
  * @property {boolean} [skipAuth] - 是否跳过认证
  */
+import OrderInfo from "@/views/order/OrderInfo.vue";
+import userOrders from "@/views/user/UserOrders.vue";
+import paymentSuccess from "@/views/order/PaymentSuccess.vue";
+
 
 // 定义路由关系
 const routes = [
@@ -30,7 +34,8 @@ const routes = [
   {path: '/superadmin', component: superadminPage},
   {path: '/user', component: UserManagement},
   {path: '/movie', component: MovieInfo},
-  {path: '/movie/:id', component: moviedetails},
+  {path: '/movie-info/:id', component: movieDetails},
+  {path: '/MovieList', component: MovieList},
   {path: '/SearchList', component: SearchList},
   {path: '/chooseSessions/:id', component: chooseSessions},
   {
@@ -39,8 +44,15 @@ const routes = [
     component: seatSelection,
     props: true
   },
-  {path: '/order/:id', component: OrderDetail},
-  {path: '/MovieList', component: MovieList},
+  {
+    path: '/user-orders/:id',
+    name: 'userOrders',
+    component: userOrders,
+    props: true
+  },
+  {path: '/order-info/:id', component: OrderDetail},
+  {path:'/order', component: OrderInfo},
+  {path:'/payment-success/:id', component: paymentSuccess},
   {
     path: '/qq-auth-redirect',
     component: QQAuthRedirect,
@@ -52,6 +64,8 @@ const routes = [
     meta: { skipAuth: true }
   }
 ]
+
+
 
 // 创建路由器
 const router = createRouter({
@@ -97,9 +111,41 @@ router.beforeEach((to, from, next) => {
     return;
   }
 
+  // 允许普通用户访问 /user-orders/:userId
+  if (to.path.startsWith('/user-orders')) {
+    next();
+    return;
+  }
+
   // 用户管理相关页面，只有管理员和超级管理员可访问
   if (to.path.startsWith('/user') && roleId === 3) {
     ElMessage.error('无权访问用户管理页面');
+    next(getDefaultRouteByRole(roleId));
+    return;
+  }
+
+  // 允许普通用户访问 /movie-info/:movieId
+  if (to.path.startsWith('/movie-info')) {
+    next();
+    return;
+  }
+
+  // 电影管理相关页面，只有管理员和超级管理员可访问
+  if (to.path.startsWith('/movie') && roleId === 3) {
+    ElMessage.error('无权访问电影管理页面');
+    next(getDefaultRouteByRole(roleId));
+    return;
+  }
+
+  // 允许普通用户访问 /movie-info/:movieId
+  if (to.path.startsWith('/order-info')) {
+    next();
+    return;
+  }
+
+  // 订单管理相关页面，只有管理员和超级管理员可访问
+  if (to.path.startsWith('/order') && roleId === 3) {
+    ElMessage.error('无权访问订单管理页面');
     next(getDefaultRouteByRole(roleId));
     return;
   }

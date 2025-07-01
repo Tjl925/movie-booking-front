@@ -8,10 +8,11 @@ import MovieInfo from "../movie/MovieInfo.vue";
 import MovieGenre from "../movie/MovieGenre.vue";
 import MovieRegion from "../movie/MovieRegion.vue";
 import MovieSession from "../movie/MovieSession.vue";
+import OrderInfo from "../order/OrderInfo.vue";
 import Home from "../Home.vue";
 
 // 当前激活的菜单项
-const activeMenu = ref('1'); // 默认显示用户列表
+const activeMenu = ref('1'); // 默认显示
 
 // 处理菜单点击事件
 const handleMenuClick = (menuIndex) => {
@@ -56,12 +57,17 @@ const handleMenuClick = (menuIndex) => {
         </div>
         
         <!-- 场次管理内容 -->
-        <div v-if="activeMenu === '3-5'" class="content-panel">
+        <div v-if="activeMenu === '3-4'" class="content-panel">
           <movie-session />
         </div>
         
+        <!-- 订单信息内容 -->
+        <div v-if="activeMenu === '4-1'" class="content-panel">
+          <order-info />
+        </div>
+
         <!-- 其他菜单项的内容区域，可以根据需要添加 -->
-        <div v-if="activeMenu !== '2-1' && activeMenu !== '2-2' && activeMenu !== '3-1' && activeMenu !== '3-2' && activeMenu !== '3-3' && activeMenu !== '3-5'" class="content-panel">
+        <div v-if="activeMenu !== '2-1' && activeMenu !== '2-2' && activeMenu !== '3-1' && activeMenu !== '3-2' && activeMenu !== '3-3' && activeMenu !== '3-4' && activeMenu !== '4-1'" class="content-panel">
           <el-empty description="暂未实现该功能，敬请期待" />
         </div>
       </div>

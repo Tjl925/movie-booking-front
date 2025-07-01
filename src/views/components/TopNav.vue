@@ -96,6 +96,8 @@ const handleCommand = (command) => {
     showUpdate();
   }else if(command === 'changePassword') {
     showChangePassword();
+  }else if(command === 'fetchOrders') {
+    router.push(`/user-orders/${userInfoStore.userInfo.id}`);
   }
 };
 
@@ -214,7 +216,6 @@ const handleAvatarChange = (file) => {
 // 7. 密码修改相关
 const passwordDialogVisible = ref(false);
 const ChangePasswordDTO = ref({
-
   oldPassword: "",
   newPassword: "",
   confirmPassword: "",
@@ -324,8 +325,9 @@ const handlePasswordUpdate = async () => {
                 <el-dropdown-item command="register">注册</el-dropdown-item>
               </template>
               <template v-else>
+                <el-dropdown-item command="update">基本信息</el-dropdown-item>
                 <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
-                <el-dropdown-item command="update">修改基本信息</el-dropdown-item>
+                <el-dropdown-item command="fetchOrders">我的订单</el-dropdown-item>
                 <el-dropdown-item command="logout">退出登录</el-dropdown-item>
               </template>
             </el-dropdown-menu>

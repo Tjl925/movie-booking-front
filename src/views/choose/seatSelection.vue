@@ -183,7 +183,7 @@ import {
   Iphone
 } from '@element-plus/icons-vue'
 import { useSessionStore } from '@/stores/session'
-import {createOrder,getById} from "@/api/orders";
+import {createOrder,getBySeatId} from "@/api/orders";
 import {useUserInfoStore} from "@/stores/userInfo";
 import {useOrderStore} from "@/stores/orderInfo";
 
@@ -192,6 +192,7 @@ const router = useRouter()
 const route = useRoute()
 const movieId = route.params.movieId
 const sessionId = route.params.sessionId
+console.log('电影ID:', movieId, '场次ID:', sessionId)
 const sessionStore = useSessionStore()
 const sessionInfo = computed(() => sessionStore.currentSession)
 const seatsInfo=ref({})
@@ -279,7 +280,7 @@ const loadSeats = async () => {
       // 保存后端初始状态
       backSeatsInfo.value = initSeatMap();
 
-      // 填充数据 - 修改这里，使用 seatSessions 而不是 seats
+      // 填充数据 - 使用 seatSessions 数据
       response.data.seatSessions.forEach(seatSession => {
         const row = Number(seatSession.rowNumber) - 1;
         const col = Number(seatSession.columnNumber) - 1;
@@ -287,10 +288,13 @@ const loadSeats = async () => {
         if (row >= 0 && row < rows && col >= 0 && col < cols) {
           const seatData = {
             ...seatSession,
+            id: seatSession.id, // 确保使用正确的ID（关联ID）
+            seatId: seatSession.seatId, // 保存座位ID
             seatRow: seatSession.rowNumber,
             seatColumn: seatSession.columnNumber,
             seatNumber: `${String.fromCharCode(65 + row)}${col + 1}`,
-            status: seatSession.status || 'AVAILABLE'
+            status: seatSession.status || 'AVAILABLE',
+            priceMultiplier: seatSession.priceMultiplier || 1
           };
 
           frontSeatsInfo.value[row][col] = { ...seatData };
@@ -370,24 +374,24 @@ const confirmOrder = async () => {
       }
 
       // 验证座位ID是否存在
-      if (!seat.id) {
+      if (!seat.seatId) {
         throw new Error(`座位 ${seat.seatNumber} 缺少ID`);
       }
 
       // 检查重复座位
-      if (seatIds.has(seat.id)) {
+      if (seatIds.has(seat.seatId)) {
         throw new Error(`座位 ${seat.seatNumber} 被重复选择`);
       }
-      seatIds.add(seat.id);
+      seatIds.add(seat.seatId);
 
       seatsToCheck.push({
-        seatId: seat.id,
+        seatId: seat.seatId,
         seatNumber: seat.seatNumber
       });
 
       // 收集座位详情
       seatDetails.push({
-        seatId: seat.id,
+        seatId: seat.seatId,
         seatNumber: seat.seatNumber,
         row: seat.seatRow,
         column: seat.seatColumn,
@@ -406,34 +410,38 @@ const confirmOrder = async () => {
       // 4. 调用API创建订单
       const orderData = {
         sessionId: Number(sessionId),
-        seatIds: seatsToCheck.map(seat => seat.seatId)
+        seatIds: Array.from(seatIds) // 使用已验证的座位ID集合
       };
 
       const res = await createOrder(orderData, userInfoStore.userInfo.id);
       console.log('创建订单响应', res.data);
       if (res.status) {
-        const seatIds = res.data.orderItems.map(item => item.seatId)
+        // 从订单项中获取座位ID列表
+        const seatIds = res.data.orderItems.map(item => item.seatId);
+
+        // 获取座位详细信息
         const seatsInfo = await Promise.all(
-            seatIds.map(id => getById(id).then(r => r.data))
-        )
-        // 设置基本信息
+          seatIds.map(id => getBySeatId(id).then(r => r.data))
+        );
+
+        // 设置订单基本信息
         orderStore.setBasicInfo(
-            res.data.session.movie.title,
-            res.data.session.sessionTime,
-            res.data.session.endTime,
-            seatsInfo
-        )
+          res.data.session.movie.title,
+          res.data.session.sessionTime,
+          res.data.session.endTime,
+          seatsInfo
+        );
 
         // 确保数据已设置后再跳转
-        await nextTick()
+        await nextTick();
 
         router.push({
-          path: `/order/${res.data.id}`,
+          path: `/order-info/${res.data.id}`,
           query: {
             totalPrice: totalPrice.value,
             phone: form.value.phone
           }
-        })
+        });
       } else {
         await loadSeats();
         ElMessage.error(res.message || '创建订单失败');

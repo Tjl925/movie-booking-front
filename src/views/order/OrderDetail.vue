@@ -17,9 +17,6 @@
         :closable="false"
     />
 
-    <!-- 信息确认提示 -->
-    <el-tag type="warning" style="margin-bottom: 10px;">请仔细核对场次信息，出票后将无法退票和改签</el-tag>
-
     <!-- 订单信息表格 -->
     <el-table :data="tableData" border style="width: 100%; margin-bottom: 20px;">
       <el-table-column prop="film" label="影片" />
@@ -36,10 +33,6 @@
           <img src="/src/assets/alipay.png" alt="支付宝" class="payment-icon" />
           支付宝支付
         </el-radio>
-        <el-radio label="WECHAT">
-          <img src="/src/assets/wechat.png" alt="微信支付" class="payment-icon" />
-          微信支付
-        </el-radio>
       </el-radio-group>
     </div>
 
@@ -51,40 +44,13 @@
         <el-button type="primary" @click="handlePay" :loading="payLoading">确认支付</el-button>
       </div>
     </div>
-
-    <!-- 支付二维码弹窗 -->
-    <el-dialog
-      v-model="qrCodeDialogVisible"
-      title="请扫码支付"
-      width="400px"
-      center
-      :close-on-click-modal="false"
-      :show-close="false"
-    >
-      <div class="qrcode-container">
-        <div v-if="paymentMethod === 'WECHAT'" class="qrcode-content">
-          <div v-html="paymentQrCode"></div>
-          <p>请使用微信扫一扫</p>
-        </div>
-        <div v-else-if="paymentMethod === 'ALIPAY'" class="qrcode-content">
-          <div v-html="paymentQrCode"></div>
-          <p>请使用支付宝扫一扫</p>
-        </div>
-      </div>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="cancelPayment">取消支付</el-button>
-          <el-button type="success" @click="checkPaymentStatus">已完成支付</el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { onBeforeUnmount, onMounted, ref, computed } from 'vue'
+import {onBeforeUnmount, onMounted, ref, computed, watch} from 'vue'
 import { useOrderStore } from "@/stores/orderInfo"
-import { getOrderDetail, cancelOrder, checkOrderStatus } from '@/api/orders'
+import {getOrderDetail, cancelOrder, getBySeatId} from '@/api/orders'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserInfoStore } from "@/stores/userInfo";
@@ -105,8 +71,6 @@ const orderId = ref(null)
 // 支付相关状态
 const paymentMethod = ref('ALIPAY') // 默认支付宝
 const payLoading = ref(false)
-const qrCodeDialogVisible = ref(false)
-const paymentQrCode = ref('')
 
 // 订单信息
 const tableData = ref([{
@@ -124,11 +88,15 @@ const remainingSeconds = computed(() => {
 })
 
 // 格式化显示
-const countdownDisplay = computed(() => {
-  const mins = Math.floor(remainingSeconds.value / 60)
-  const secs = remainingSeconds.value % 60
-  return `${mins} 分 ${secs} 秒`
-})
+const countdownDisplay = ref('')
+
+watch(remainingSeconds, (newVal) => {
+  const mins = Math.floor(newVal / 60)
+  const secs = newVal % 60
+  countdownDisplay.value = `${mins} 分 ${secs} 秒`
+}, { immediate: true, flush: 'sync' })
+
+
 
 // 获取订单详情
 const fetchOrderDetails = async () => {
@@ -137,22 +105,32 @@ const fetchOrderDetails = async () => {
 
     const res = await getOrderDetail(orderId.value, userInfoStore.userInfo.id);
     const data = res.data;
+    console.log('订单详情数据:', data);
 
     // 更新订单信息
+    const seatIds = data.orderItems?.map(item => item.seatId);
+    const seats = await Promise.all(seatIds.map(id => getBySeatId(id).then(r => r.data))) || orderStore.seats;
     tableData.value = [{
-      film: data.filmName || orderStore.filmInfo,
+      film: data.session.movie.title || orderStore.filmInfo,
       start_time: formatDateTime(data.session?.sessionTime) || orderStore.startTime,
       end_time: formatDateTime(data.session?.endTime) || orderStore.endTime,
-      seat: data.seatNumbers || orderStore.seats
+      seat: seats.map(seat => `${seat.seatRow}排${seat.seatColumn}座`).join('，')
     }];
-    console.log('后端获取的电影名', data.filmName)
-    console.log('后端获取的座位', data.seatNumbers)
 
     actualPay.value = data.totalAmount || 0;
-    orderCreateTime.value = new Date(data.createdAt);
-    expirationTime.value = new Date(data.createdAt.getTime() + 15 * 60 * 1000); // 15分钟过期
+    
+    // 确保创建时间正确解析
+    if (data.createdAt) {
+      orderCreateTime.value = new Date(data.createdAt);
+      // 设置过期时间为创建时间后15分钟
+      expirationTime.value = new Date(orderCreateTime.value.getTime() + 15 * 60 * 1000);
+    } else {
+      console.error('订单创建时间不存在');
+    }
 
-    startTimer(); // 启动倒计时
+    // 清除之前的定时器并启动新的倒计时
+    clearInterval(timer);
+    startTimer();
   } catch (error) {
     console.error('获取订单详情失败:', error);
     ElMessage.error(error.message || '获取订单详情失败');
@@ -175,7 +153,16 @@ let timer = null
 const startTimer = () => {
   clearInterval(timer)
   timer = setInterval(() => {
-    if (remainingSeconds.value <= 0) {
+    // 强制更新remainingSeconds的值，触发计算属性重新计算
+    const now = Date.now()
+    const remaining = Math.max(0, Math.floor((expirationTime.value - now) / 1000))
+    
+    // 直接更新显示值
+    const mins = Math.floor(remaining / 60)
+    const secs = remaining % 60
+    countdownDisplay.value = `${mins} 分 ${secs} 秒`
+    
+    if (remaining <= 0) {
       clearInterval(timer)
       handleTimeout()
     }
@@ -198,14 +185,24 @@ const handlePay = async () => {
     payLoading.value = true
     
     // 根据支付方式调用不同的支付接口
-    const paymentEndpoint = paymentMethod.value === 'ALIPAY' ? '/api/alipay/pay' : '/api/wxpay/pay'
-    
+    const paymentEndpoint = '/api/alipay/pay'
+
     // 构建订单数据
+    const seatStr = tableData.value[0].seat; // 例："01排05座，02排06座"
+    const seatNumbers = seatStr.split('，').map(s => {
+      const match = s.match(/(\d+)排(\d+)座/);
+      if (match) {
+        const row = match[1].padStart(2, '0');
+        const col = match[2].padStart(2, '0');
+        return `${row}${col}`;
+      }
+      return '';
+    }).filter(Boolean).join(',');
     const orderData = {
       id: orderId.value,
-      seatNumbers: tableData.value[0].seat
+      seatNumbers
     }
-    console.log('从后端得到的座位列表:', tableData.value[0].seat)
+    console.log('反向映射后的座位列表:', seatNumbers)
     
     // 发送支付请求
     const response = await request.post(paymentEndpoint, orderData, {
@@ -220,10 +217,6 @@ const handlePay = async () => {
       payDiv.innerHTML = response.data
       document.body.appendChild(payDiv)
       document.forms[0].submit() // 自动提交表单
-    } else {
-      // 微信支付 - 返回的是二维码链接，显示二维码弹窗
-      paymentQrCode.value = response.data
-      qrCodeDialogVisible.value = true
     }
   } catch (error) {
     console.error('支付请求失败:', error)
@@ -245,47 +238,35 @@ const handleCancel = async () => {
   }
 }
 
-// 取消支付
-const cancelPayment = () => {
-  qrCodeDialogVisible.value = false
-  ElMessage.info('已取消支付')
-}
+// 用于存储所有需要清除的定时器
+let refreshTimer = null
 
-// 检查支付状态
-const checkPaymentStatus = async () => {
-  try {
-    const res = await checkOrderStatus(orderId.value)
-    if (res.data.status === 'PAID') {
-      ElMessage.success('支付成功')
-      qrCodeDialogVisible.value = false
-      router.push('/payment-success/' + orderId.value) // 支付成功后跳转到支付成功页面
-    } else {
-      ElMessage.warning('未检测到支付完成，请稍后再试')
-    }
-  } catch (error) {
-    console.error('检查支付状态失败:', error)
-    ElMessage.error(error.message || '检查支付状态失败')
-  }
-}
-
-onMounted(() => {
+onMounted(async () => {
   orderId.value = route.params.id
-  console.log('订单号为：'+orderId.value)
   tableData.value[0].film = orderStore.filmInfo
   tableData.value[0].start_time = orderStore.startTime
   tableData.value[0].end_time = orderStore.endTime
-  tableData.value[0].seat = orderStore.seats
-  fetchOrderDetails()
+  tableData.value[0].seat = orderStore.seats.map(seat => `${seat.seatRow}排${seat.seatColumn}座`).join('，')
+  
+  // 立即获取订单详情并初始化倒计时
+  await fetchOrderDetails()
+  
+  // 设置定期刷新订单详情的定时器（每30秒刷新一次）
+  refreshTimer = setInterval(async () => {
+    await fetchOrderDetails()
+  }, 30000) // 30秒刷新一次
 })
 
+// 组件卸载时清除所有定时器
 onBeforeUnmount(() => {
   clearInterval(timer)
+  clearInterval(refreshTimer)
 })
 </script>
 
 <style scoped>
 .movie-pay-container {
-  width: 800px;
+  width: 1000px;
   margin: 50px auto;
   padding: 20px;
   border: 1px solid #ebeef5;

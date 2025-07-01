@@ -195,7 +195,7 @@ const router = useRouter();
 
 const goToDetail = (movieId) => {
   router.push({
-    path: `/movie/${movieId}`
+    path: `/movie-info/${movieId}`
   });
 };
 
