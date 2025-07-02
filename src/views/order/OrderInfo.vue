@@ -1,10 +1,12 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import {getAllOrders, deleteOrder, getByOrderId, getBySeatId} from '@/api/orders';
+import { ref, onMounted, computed } from 'vue';
+import {getAllOrders, deleteOrder, getByOrderId, getBySeatId, refundOrder} from '@/api/orders';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { Search } from '@element-plus/icons-vue';
 
 // 表格数据
 const tableData = ref([]);
+const allOrders = ref([]); // 存储所有订单数据
 // 加载状态
 const loading = ref(false);
 // 分页参数
@@ -14,34 +16,22 @@ const pagination = ref({
   total: 0
 });
 
+// 搜索条件
+const searchQuery = ref('');
+const searchType = ref('movie'); // 默认按电影名搜索，可选值：movie, userId
+
+// 状态筛选
+const statusFilter = ref('');
+
 // 获取所有订单
 const fetchOrders = async () => {
   loading.value = true;
   try {
-    const response = await getAllOrders(pagination.value.currentPage, pagination.value.pageSize);
+    const response = await getAllOrders(1, 1000); // 获取所有订单数据，用于全局筛选
     if (response.status) {
       console.log('获取订单列表成功:', response.data.records);
-      // 先处理所有订单的异步orderNumber获取
-      const ordersWithOrderNumber = await Promise.all(
-          response.data.records.map(async order => {
-            const seatIds = (order.orderItems || [])
-                .map(item => item.seatId);
-            const seats = await Promise.all(
-                seatIds.map(id => getBySeatId(id).then(r => r.data))
-            );
-            const seatNumbers = seats
-                .map(item => item && item.seatRow && item.seatColumn ? `${item.seatRow}排${item.seatColumn}座` : '')
-                .filter(Boolean)
-                .join('，');
-            console.log('处理订单座位号:', seatNumbers);
-            return {
-              ...order,
-              seatNumbers
-            };
-          })
-      );
-      tableData.value = ordersWithOrderNumber;
-      pagination.value.total = response.data.total;
+      allOrders.value = response.data.records;
+      applyFiltersAndPagination();
     } else {
       ElMessage.error('获取订单列表失败');
     }
@@ -53,15 +43,61 @@ const fetchOrders = async () => {
   }
 };
 
+// 应用筛选和分页
+const applyFiltersAndPagination = () => {
+  let filteredData = [...allOrders.value];
+  
+  // 应用搜索筛选
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase();
+    if (searchType.value === 'movie') {
+      filteredData = filteredData.filter(order => 
+        order.session && order.session.movie.title.toLowerCase().includes(query)
+      );
+    } else if (searchType.value === 'userId') {
+      filteredData = filteredData.filter(order => 
+        order.userId && order.userId.toString() === query
+      );
+    }
+  }
+  
+  // 应用状态筛选
+  if (statusFilter.value) {
+    filteredData = filteredData.filter(order => order.status === statusFilter.value);
+  }
+  
+  // 计算总数
+  pagination.value.total = filteredData.length;
+  
+  // 应用分页
+  const start = (pagination.value.currentPage - 1) * pagination.value.pageSize;
+  const end = start + pagination.value.pageSize;
+  tableData.value = filteredData.slice(start, end);
+};
+
+// 处理搜索
+const handleSearch = () => {
+  pagination.value.currentPage = 1; // 重置到第一页
+  applyFiltersAndPagination();
+};
+
+// 处理状态筛选
+const handleStatusFilterChange = (value) => {
+  statusFilter.value = value;
+  pagination.value.currentPage = 1; // 重置到第一页
+  applyFiltersAndPagination();
+};
+
 // 处理分页变化
 const handleCurrentChange = (val) => {
   pagination.value.currentPage = val;
-  fetchOrders();
+  applyFiltersAndPagination();
 };
 
 const handleSizeChange = (val) => {
   pagination.value.pageSize = val;
-  fetchOrders();
+  pagination.value.currentPage = 1;
+  applyFiltersAndPagination();
 };
 
 // 格式化日期时间
@@ -84,7 +120,8 @@ const formatStatus = (status) => {
     'PENDING': '待支付',
     'PAID': '已支付',
     'CANCELLED': '已取消',
-    'REFUNDED': '已退款'
+    'REFUNDED': '已退款',
+    'COMPLETED': '已完成'
   };
   return statusMap[status] || status;
 };
@@ -95,7 +132,8 @@ const getStatusType = (status) => {
     'PENDING': 'warning',
     'PAID': 'success',
     'CANCELLED': 'info',
-    'REFUNDED': 'danger'
+    'REFUNDED': 'danger',
+    'COMPLETED': 'success'
   };
   return typeMap[status] || '';
 };
@@ -130,14 +168,87 @@ const handleDelete = (row) => {
     });
 };
 
+// 处理退款
+const handleRefund = (row) => {
+  ElMessageBox.prompt(
+    '请输入退款原因',
+    '申请退款',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputPattern: /\S+/,
+      inputErrorMessage: '退款原因不能为空'
+    }
+  )
+    .then(async ({ value: refundReason }) => {
+      try {
+        loading.value = true;
+        const response = await refundOrder(row.id, refundReason);
+        if (response.status) {
+          ElMessage.success('退款申请成功');
+          fetchOrders(); // 重新加载数据
+        } else {
+          ElMessage.error(response.message || '退款申请失败');
+        }
+      } catch (error) {
+        console.error('退款申请出错:', error);
+        ElMessage.error('退款申请出错');
+      } finally {
+        loading.value = false;
+      }
+    })
+    .catch(() => {
+      ElMessage.info('已取消退款申请');
+    });
+};
+
 onMounted(() => {
   fetchOrders();
 });
 </script>
 
 <template>
-  <div class="order-info-container">
-    <h2>订单信息管理</h2>
+  <el-card class="order-info-container">
+    <template #header>
+      <div class="header">
+        <span>订单信息管理</span>
+        <!-- 搜索和筛选区域 -->
+        <div class="search-box">
+          <el-select v-model="searchType" placeholder="搜索类型" style="width: 120px">
+            <el-option label="电影名" value="movie"></el-option>
+            <el-option label="用户ID" value="userId"></el-option>
+          </el-select>
+          
+          <el-input
+            v-model="searchQuery"
+            placeholder="请输入搜索内容"
+            clearable
+            style="width: 300px; margin-left: 10px"
+            @keyup.enter="handleSearch"
+          >
+            <template #append>
+              <el-button @click="handleSearch">
+                <el-icon><Search /></el-icon>
+              </el-button>
+            </template>
+          </el-input>
+          
+          <el-select 
+            v-model="statusFilter" 
+            placeholder="订单状态" 
+            clearable 
+            style="width: 120px; margin-left: 10px"
+            @change="handleStatusFilterChange"
+          >
+            <el-option label="待支付" value="PENDING"></el-option>
+            <el-option label="已支付" value="PAID"></el-option>
+            <el-option label="已取消" value="CANCELLED"></el-option>
+            <el-option label="已退款" value="REFUNDED"></el-option>
+            <el-option label="已完成" value="COMPLETED"></el-option>
+          </el-select>
+        </div>
+      </div>
+    </template>
     
     <el-table
       v-loading="loading"
@@ -146,7 +257,7 @@ onMounted(() => {
       border
       stripe
       row-key="id"
-      height="500"
+      height="480"
     >
       <el-table-column type="expand">
         <template #default="props">
@@ -207,15 +318,25 @@ onMounted(() => {
           {{ formatDateTime(scope.row.createdAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" fixed="right" width="100">
+      <el-table-column label="操作" fixed="right" width="150">
         <template #default="scope">
-          <el-button
-            type="danger"
-            size="small"
-            @click="handleDelete(scope.row)"
-          >
-            删除
-          </el-button>
+          <div class="operation-buttons">
+            <el-button
+              type="primary"
+              size="small"
+              @click="handleRefund(scope.row)"
+              :disabled="scope.row.status !== 'PAID'"
+            >
+              退款
+            </el-button>
+            <el-button
+              type="danger"
+              size="small"
+              @click="handleDelete(scope.row)"
+            >
+              删除
+            </el-button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -231,12 +352,29 @@ onMounted(() => {
         @current-change="handleCurrentChange"
       />
     </div>
-  </div>
+  </el-card>
 </template>
 
 <style scoped>
 .order-info-container {
-  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header span {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .expanded-row {
@@ -251,5 +389,11 @@ onMounted(() => {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+
+.operation-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 </style>

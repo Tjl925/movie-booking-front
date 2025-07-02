@@ -62,12 +62,12 @@ const handleMenuClick = (menuIndex) => {
         </div>
         
         <!-- 订单信息内容 -->
-        <div v-if="activeMenu === '4-1'" class="content-panel">
+        <div v-if="activeMenu === '4'" class="content-panel">
           <order-info />
         </div>
 
         <!-- 其他菜单项的内容区域，可以根据需要添加 -->
-        <div v-if="activeMenu !== '2-1' && activeMenu !== '2-2' && activeMenu !== '3-1' && activeMenu !== '3-2' && activeMenu !== '3-3' && activeMenu !== '3-4' && activeMenu !== '4-1'" class="content-panel">
+        <div v-if="activeMenu === '1'" class="content-panel">
           <el-empty description="暂未实现该功能，敬请期待" />
         </div>
       </div>

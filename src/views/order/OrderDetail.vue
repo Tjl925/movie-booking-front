@@ -107,14 +107,11 @@ const fetchOrderDetails = async () => {
     const data = res.data;
     console.log('订单详情数据:', data);
 
-    // 更新订单信息
-    const seatIds = data.orderItems?.map(item => item.seatId);
-    const seats = await Promise.all(seatIds.map(id => getBySeatId(id).then(r => r.data))) || orderStore.seats;
     tableData.value = [{
       film: data.session.movie.title || orderStore.filmInfo,
       start_time: formatDateTime(data.session?.sessionTime) || orderStore.startTime,
       end_time: formatDateTime(data.session?.endTime) || orderStore.endTime,
-      seat: seats.map(seat => `${seat.seatRow}排${seat.seatColumn}座`).join('，')
+      seat: data.seatNumbers,
     }];
 
     actualPay.value = data.totalAmount || 0;

@@ -3,6 +3,7 @@ import request from "@/utils/request";
 export const createOrder = (orderCreationDTO, uid) => request.post('/api/orders', orderCreationDTO, { params: { uid } })
 export const getBySeatId = (id) => request.get(`/api/seats/${id}`);
 export const getByOrderId = (id) => request.get(`/api/orders/${id}`);
+export const getUserById = (id) => request.get(`/api/users/${id}`);
 export const getOrderDetail = (orderId, userId) => request.post('/api/orders/detail', { orderId, userId });
 export const getAllOrdersByUserId=(userId)=>Request.get(`/api/orders/user/${userId}/all`);
 export const cancelOrder = (orderId, userId) => {
@@ -23,9 +24,9 @@ export const getAllOrders = (current = 1, size = 10) => {
 }
 
 // 管理员删除订单
-export const deleteOrder = (orderId) => {
+export const deleteOrder = (id) => {
     return request({
-        url: `/api/orders/admin/${orderId}`,
+        url: `/api/orders/admin/${id}`,
         method: 'delete'
     })
 }
@@ -44,7 +45,7 @@ export const refundOrder = (orderId, refundReason) => {
     return request({
         url: '/api/alipay/refund',
         method: 'post',
-        data: { orderId, refundReason } // 使用data而不是params，确保请求方法为POST
+        data: { orderId, refundReason }
     })
 }
 export const getIsRated=(id)=>request.get(`/api/orders/${id}/rated`)

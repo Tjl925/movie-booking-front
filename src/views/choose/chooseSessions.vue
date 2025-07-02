@@ -138,12 +138,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElSelect, ElOption, ElButton, ElRate, ElTag } from 'element-plus'
+import {ElSelect, ElOption, ElButton, ElRate, ElTag, ElMessage} from 'element-plus'
 import dayjs from 'dayjs'
 import { getSessionInfosByMovieId } from "@/api/user";
 import TopNav from "@/views/components/TopNav.vue";
 import { useSessionStore } from '@/stores/session'
 import { getMovieById } from "@/api/movie";
+import {useUserInfoStore} from "@/stores/userInfo";
+import {getUserById} from "@/api/orders";
 
 const route = useRoute()
 const router = useRouter()
@@ -288,23 +290,42 @@ const filteredShowtimes = computed(() => {
 });
 
 // 跳转到选座界面
-const goToSeatSelection = (movieId, sessionId) => {
-  const selectedShowtime = showtimes.value.find(s => s.id === sessionId)
-  if (!selectedShowtime) return
+const goToSeatSelection = async (movieId, sessionId) => {
+  const userInfoStore = useUserInfoStore();
+  console.log('当前用户信息:', userInfoStore);
+  if (!userInfoStore || !userInfoStore.userInfo.token)
+  {
+    ElMessage.error('请先登录！');
+    await router.push('/Login');
+  }else{
+    const userId = userInfoStore.userInfo.id;
+    const user = await getUserById(userId).then(r => r.data);
+    console.log('当前用户信息:', user);
+    if (user.status !== "ACTIVE")
+    {
+      ElMessage.error('您的账号已被禁用，请联系管理员申诉！');
+    }
+    else
+    {
+      // 找到当前点击的场次
+      const selectedShowtime = showtimes.value.find(s => s.id === sessionId)
+      if (!selectedShowtime) return
 
-  const sessionStore = useSessionStore()
-  sessionStore.setCurrentSession({
-    id: sessionId,
-    movieId: movieId,
-    showDate: selectedShowtime.showDate,
-    startTime: selectedShowtime.startTime,
-    endTime: selectedShowtime.endTime,
-    hallName: selectedShowtime.hallName,
-    hallType: selectedShowtime.hallType,
-    price: selectedShowtime.price,
-    availableSeats: selectedShowtime.availableSeats
-  })
-  router.push(`/seat-selection/${movieId}/${sessionId}`)
+      const sessionStore = useSessionStore()
+      sessionStore.setCurrentSession({
+        id: sessionId,
+        movieId: movieId,
+        showDate: selectedShowtime.showDate,
+        startTime: selectedShowtime.startTime,
+        endTime: selectedShowtime.endTime,
+        hallName: selectedShowtime.hallName,
+        hallType: selectedShowtime.hallType,
+        price: selectedShowtime.price,
+        availableSeats: selectedShowtime.availableSeats
+      })
+      await router.push(`/seat-selection/${movieId}/${sessionId}`)
+    }
+  }
 }
 
 // 获取完整图片URL

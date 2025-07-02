@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import {ref, onMounted, computed} from 'vue';
 import {ElLoading, ElMessage, ElMessageBox} from 'element-plus';
 import {Search, Delete, Edit, Grid} from '@element-plus/icons-vue';
 import {getSessionList, deleteSession, getSeatsForSelection} from '@/api/session';
@@ -103,14 +103,17 @@ const frontSeatsInfo = ref([]); // 用于界面展示的座位状态
 const backSeatsInfo = ref([]);
 const seatDialogVisible=ref(false);
 const seatRows = ref([])
-const handleOpenSessionSeats= async (row)=>{
-  let loading = null
+const handleOpenSessionSeats = async (row) => {
+  let loading = null;
   try {
-     loading = ElLoading.service({
+    loading = ElLoading.service({
       lock: true,
       text: '正在加载座位图...',
       background: 'rgba(0, 0, 0, 0.7)'
     });
+
+    // 记录当前影厅名
+    currentHallName.value = row.hall?.hallName || '';
 
     const response = await getSeatsForSelection(row.id);
     console.log('座位数据:', response);
@@ -134,20 +137,20 @@ const handleOpenSessionSeats= async (row)=>{
 
       if (response.data.seatSessions) {
         response.data.seatSessions.forEach(seatSession => {
-          const row = Number(seatSession.rowNumber) - 1;
-          const col = Number(seatSession.columnNumber) - 1;
+          const rowIdx = Number(seatSession.rowNumber) - 1;
+          const colIdx = Number(seatSession.columnNumber) - 1;
 
-          if (row >= 0 && row < rows && col >= 0 && col < cols) {
+          if (rowIdx >= 0 && rowIdx < rows && colIdx >= 0 && colIdx < cols) {
             const seatData = {
               ...seatSession,
               seatRow: seatSession.rowNumber,
               seatColumn: seatSession.columnNumber,
-              seatNumber: `${String.fromCharCode(65 + row)}${col + 1}`,
+              seatNumber: `${String.fromCharCode(65 + rowIdx)}${colIdx + 1}`,
               status: seatSession.status || 'AVAILABLE'
             };
 
-            frontSeatsInfo.value[row][col] = { ...seatData };
-            backSeatsInfo.value[row][col] = { ...seatData };
+            frontSeatsInfo.value[rowIdx][colIdx] = { ...seatData };
+            backSeatsInfo.value[rowIdx][colIdx] = { ...seatData };
           }
         });
       }
@@ -163,6 +166,20 @@ const handleOpenSessionSeats= async (row)=>{
   }
 }
 
+// 根据影厅名动态设置座位图弹窗宽度
+const currentHallName = ref('');
+const getDialogWidth = computed(() => {
+  switch (currentHallName.value) {
+    case 'IMAX厅':
+      return '1200px';
+    case '2号厅':
+      return '900px';
+    case '杜比厅':
+      return '1100px';
+    default:
+      return '800px';
+  }
+});
 
 // 格式化日期时间
 const formatDateTime = (dateTimeStr) => {
@@ -220,7 +237,7 @@ onMounted(() => {
           <div class="search-item">
             <el-input
               v-model="searchKeyword"
-              placeholder="请输入电影名称或影厅名称搜索"
+              placeholder="请输入电影名/影厅名/状态搜索"
               clearable
               @keyup.enter="handleSearch"
             >
@@ -238,8 +255,9 @@ onMounted(() => {
       border 
       style="width: 100%" 
       v-loading="loading"
+      height="480"
     >
-      <el-table-column label="电影" min-width="180" >
+      <el-table-column label="电影" min-width="180">
         <template #default="scope">
           <div class="movie-info">
             <el-image 
@@ -330,7 +348,7 @@ onMounted(() => {
   <el-dialog
       title="影厅座位图"
       v-model="seatDialogVisible"
-      width="800px"
+      :width="getDialogWidth"
       top="5vh"
   >
     <div class="seat-map-container">
@@ -342,7 +360,6 @@ onMounted(() => {
             :key="rowIndex"
             class="seat-row"
         >
-          <div class="row-label">{{ String.fromCharCode(65 + rowIndex) }}</div>
           <div
               v-for="(seat, colIndex) in row"
               :key="colIndex"
@@ -382,7 +399,7 @@ onMounted(() => {
 }
 
 .screen {
-  width: 80%;
+  width: 90%;
   height: 30px;
   margin: 0 auto 30px;
   background: linear-gradient(to bottom, #e0e0e0, #b0b0b0);
@@ -408,12 +425,6 @@ onMounted(() => {
   align-items: center;
 }
 
-.row-label {
-  width: 24px;
-  text-align: center;
-  font-weight: bold;
-  color: #666;
-}
 
 .seat {
   width: 36px;

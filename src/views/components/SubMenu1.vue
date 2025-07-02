@@ -17,9 +17,7 @@ const handleSelect = (key: string, keyPath: string[]) => {
     default-active="1"
     :default-openeds="['2','3','4']"
     class="el-menu-vertical-demo"
-    background-color="#545c64"
-    text-color="#fff"
-    active-text-color="#ffd04b"
+    active-text-color="red"
     @select="handleSelect"
   >
     <el-menu-item index="1">
@@ -44,13 +42,9 @@ const handleSelect = (key: string, keyPath: string[]) => {
       <el-menu-item index="3-3">电影区域</el-menu-item>
       <el-menu-item index="3-4">场次管理</el-menu-item>
     </el-sub-menu>
-    <el-sub-menu index="4">
-      <template #title>
-        <el-icon><document /></el-icon>
-        <span>订单管理</span>
-      </template>
-      <el-menu-item index="4-1">订单信息</el-menu-item>
-      <el-menu-item index="4-2">退款申请</el-menu-item>
-    </el-sub-menu>
+    <el-menu-item index="4">
+      <el-icon><Document /></el-icon>
+      <span>订单管理</span>
+    </el-menu-item>
   </el-menu>
 </template>

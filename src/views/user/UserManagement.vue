@@ -16,18 +16,18 @@ import {uploadAvatar} from "@/api/user";
 
 // 用户管理相关数据和方法
 const searchKeyword = ref('');
+const searchType = ref('username'); // 默认按用户名搜索，可选值：username, email, phone
 const currentPage = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
 const userList = ref([]);
+const allUsers = ref([]); // 存储所有用户数据，用于全局筛选
 const loading = ref(false);
 const userGroups = ref([]);
 
-// 搜索参数
-const searchParams = reactive({
-  username: '',
-  email: '',
-});
+// 筛选条件
+const roleFilter = ref(''); // 角色筛选
+const statusFilter = ref(''); // 状态筛选
 
 // 编辑用户对话框
 const editDialogVisible = ref(false);
@@ -50,20 +50,21 @@ const selectedGroups = ref([]);
 const loadUserList = async () => {
   loading.value = true;
   try {
+    // 获取所有用户数据
     const params = {
-      current: currentPage.value,
-      size: pageSize.value
+      current: 1,
+      size: 1000
     };
-
-    // 添加搜索条件
-    if (searchParams.username) params.username = searchParams.username;
-    if (searchParams.email) params.email = searchParams.email;
 
     const response = await getUserList(params);
     console.info('响应:', response)
     if (response.status) {
       userList.value = response.data.records;
       total.value = response.data.total;
+      allUsers.value = response.data.records; // 存储所有用户数据，用于全局筛选
+      
+      // 应用筛选
+      applyFiltersAndPagination();
     }
   } catch (error) {
     console.error('获取用户列表失败:', error);
@@ -71,6 +72,45 @@ const loadUserList = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// 应用筛选和分页
+const applyFiltersAndPagination = () => {
+  // 应用搜索筛选
+  let filteredUsers = allUsers.value.filter(user => {
+    // 搜索关键词筛选
+    if (searchKeyword.value) {
+      if (searchType.value === 'username' && !user.username.toLowerCase().includes(searchKeyword.value.toLowerCase())) {
+        return false;
+      }
+      if (searchType.value === 'email' && !user.email.toLowerCase().includes(searchKeyword.value.toLowerCase())) {
+        return false;
+      }
+      if (searchType.value === 'phone' && !user.phone.includes(searchKeyword.value)) {
+        return false;
+      }
+    }
+    
+    // 角色筛选
+    if (roleFilter.value && user.roleName !== roleFilter.value) {
+      return false;
+    }
+    
+    // 状态筛选
+    if (statusFilter.value && user.status !== statusFilter.value) {
+      return false;
+    }
+    
+    return true;
+  });
+  
+  // 更新总数
+  total.value = filteredUsers.length;
+  
+  // 应用分页
+  const startIndex = (currentPage.value - 1) * pageSize.value;
+  const endIndex = startIndex + pageSize.value;
+  userList.value = filteredUsers.slice(startIndex, endIndex);
 };
 
 // 加载用户分组
@@ -87,35 +127,38 @@ const loadUserGroups = async () => {
 
 // 搜索用户
 const handleSearch = () => {
-  // 根据搜索关键词设置搜索参数
-  if (searchKeyword.value) {
-    // 判断是否是邮箱格式
-    if (searchKeyword.value.includes('@')) {
-      searchParams.email = searchKeyword.value;
-      searchParams.username = '';
-    } else {
-      searchParams.username = searchKeyword.value;
-      searchParams.email = '';
-    }
-  } else {
-    searchParams.username = '';
-    searchParams.email = '';
-  }
-
   currentPage.value = 1; // 重置到第一页
-  loadUserList();
+  applyFiltersAndPagination(); // 应用筛选而不是重新加载
+};
+
+// 处理搜索类型变化
+const handleSearchTypeChange = () => {
+  handleSearch(); // 搜索类型变化时重新应用搜索
+};
+
+// 处理角色筛选变化
+const handleRoleFilterChange = () => {
+  currentPage.value = 1; // 重置页码
+  applyFiltersAndPagination();
+};
+
+// 处理状态筛选变化
+const handleStatusFilterChange = () => {
+  currentPage.value = 1; // 重置页码
+  applyFiltersAndPagination();
 };
 
 // 分页大小变化
 const handleSizeChange = (size) => {
   pageSize.value = size;
-  loadUserList();
+  currentPage.value = 1; // 重置到第一页
+  applyFiltersAndPagination();
 };
 
 // 页码变化
 const handleCurrentChange = (page) => {
   currentPage.value = page;
-  loadUserList();
+  applyFiltersAndPagination();
 };
 
 // 打开编辑对话框
@@ -151,32 +194,6 @@ const submitEditForm = async () => {
     console.error('更新用户失败:', error);
     ElMessage.error('更新用户失败');
   }
-};
-
-// 删除用户
-const handleDelete = (row) => {
-  ElMessageBox.confirm(
-      `确定要删除用户 ${row.username} 吗？此操作不可逆。`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-  ).then(async () => {
-    try {
-      const response = await deleteUser(row.id);
-      if (response.status) {
-        ElMessage.success('用户删除成功');
-        loadUserList(); // 重新加载用户列表
-      }
-    } catch (error) {
-      console.error('删除用户失败:', error);
-      ElMessage.error('删除用户失败');
-    }
-  }).catch(() => {
-    ElMessage.info('已取消删除');
-  });
 };
 
 // 更新用户状态（禁用/启用）
@@ -299,9 +316,15 @@ onMounted(() => {
       <div class="header">
         <span>用户管理</span>
         <div class="search-box">
+        <div class="search-container">
+          <el-select v-model="searchType" placeholder="搜索类型" style="width: 150px" @change="handleSearchTypeChange">
+            <el-option label="用户名" value="username" />
+            <el-option label="邮箱" value="email" />
+            <el-option label="手机号" value="phone" />
+          </el-select>
           <el-input
               v-model="searchKeyword"
-              placeholder="请输入用户名或邮箱搜索"
+              :placeholder="`搜索${searchType === 'username' ? '用户名' : searchType === 'email' ? '邮箱' : '手机号'}`"
               clearable
               @keyup.enter="handleSearch"
           >
@@ -309,7 +332,17 @@ onMounted(() => {
               <el-button :icon="Search" @click="handleSearch">搜索</el-button>
             </template>
           </el-input>
+          <el-select v-model="roleFilter" placeholder="角色" clearable @change="handleRoleFilterChange" style="width: 150px; margin-left: 10px">
+            <el-option label="超级管理员" value="SUPER_ADMIN" />
+            <el-option label="管理员" value="ADMIN" />
+            <el-option label="普通用户" value="USER" />
+          </el-select>
+          <el-select v-model="statusFilter" placeholder="状态" clearable @change="handleStatusFilterChange" style="width: 150px; margin-left: 10px">
+            <el-option label="正常" value="ACTIVE" />
+            <el-option label="禁用" value="INACTIVE" />
+          </el-select>
         </div>
+      </div>
       </div>
     </template>
 
@@ -354,15 +387,11 @@ onMounted(() => {
           </el-descriptions>
         </template>
       </el-table-column>
-      <el-table-column prop="id" label="ID" width="60"/>
+      <el-table-column prop="id" label="ID" width="80"/>
       <el-table-column prop="username" label="用户名"/>
       <el-table-column prop="email" label="邮箱"/>
       <el-table-column prop="phone" label="手机号" width="150"/>
-      <el-table-column prop="roleName" label="角色" width="120" :filters="[
-        { text: '超级管理员', value: 'SUPER_ADMIN' },
-        { text: '管理员', value: 'ADMIN' },
-        { text: '普通用户', value: 'USER' }
-      ]" :filter-method="(value, row) => row.roleName === value" filter-placement="bottom">
+      <el-table-column prop="roleName" label="角色" width="120">
         <template #default="scope">
           <span>
             {{
@@ -371,17 +400,14 @@ onMounted(() => {
           </span>
         </template>
       </el-table-column>
-      <el-table-column prop="status" label="状态" width="80" :filters="[
-        { text: '正常', value: 'ACTIVE' },
-        { text: '禁用', value: 'INACTIVE' }
-      ]" :filter-method="(value, row) => row.status === value" filter-placement="bottom">
+      <el-table-column prop="status" label="状态" width="100">
         <template #default="scope">
           <el-tag :type="scope.row.status === 'ACTIVE' ? 'success' : 'danger'">
             {{ scope.row.status === 'ACTIVE' ? '正常' : '禁用' }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="操作" fixed="right" width="350">
+      <el-table-column label="操作" fixed="right" width="280">
         <template #default="scope">
           <el-button
               size="small"
@@ -403,13 +429,6 @@ onMounted(() => {
               :icon="Connection"
               @click="handleManageUserGroups(scope.row)"
           >分组
-          </el-button>
-          <el-button
-              size="small"
-              type="danger"
-              :icon="Delete"
-              @click="handleDelete(scope.row)"
-          >删除
           </el-button>
         </template>
       </el-table-column>
@@ -520,7 +539,14 @@ onMounted(() => {
 }
 
 .search-box {
-  width: 350px;
+  display: flex;
+  align-items: center;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .action-buttons {

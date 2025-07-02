@@ -119,14 +119,14 @@ const handleDeleteMovie = (row) => {
 
 // 处理电影上映
 const handleReleaseMovie = (row) => {
-  // 如果电影已经是上映中状态，不允许再次上映
-  if (row.status === 'NOW_SHOWING') {
-    ElMessage.warning('该电影已上映');
+  // 如果电影已经是上架状态，不允许再次上架
+  if (row.status === 'UPCOMING') {
+    ElMessage.warning('该电影已上架');
     return;
   }
   
   ElMessageBox.confirm(
-      `确定要将电影 "${row.title}" 设置为上映中吗？`,
+      `确定要将电影 "${row.title}" 设置为上架吗？`,
       '提示',
       {
         confirmButtonText: '确定',
@@ -136,12 +136,12 @@ const handleReleaseMovie = (row) => {
   )
       .then(async () => {
         try {
-          await updateMovieStatus(row.id, 'NOW_SHOWING');
-          ElMessage.success('电影已设置为上映中');
+          await updateMovieStatus(row.id, 'UPCOMING');
+          ElMessage.success('电影已设置为上架');
           fetchMovieList();
         } catch (error) {
-          console.error('设置上映状态失败:', error);
-          ElMessage.error('设置上映状态失败');
+          console.error('设置上架状态失败:', error);
+          ElMessage.error('设置上架状态失败');
         }
       })
       .catch(() => {
@@ -312,6 +312,7 @@ onMounted(() => {
                 size="small" 
                 type="warning" 
                 @click="handleAssignSession(scope.row)"
+                :disabled="scope.row.status === 'ENDED'"
               >分配</el-button>
             </div>
             <div class="button-row">
@@ -319,8 +320,8 @@ onMounted(() => {
                 size="small" 
                 type="success" 
                 @click="handleReleaseMovie(scope.row)"
-                :disabled="scope.row.status === 'NOW_SHOWING'"
-              >上映</el-button>
+                :disabled="scope.row.status !== 'ENDED'"
+              >上架</el-button>
               <el-button 
                 size="small" 
                 type="danger" 

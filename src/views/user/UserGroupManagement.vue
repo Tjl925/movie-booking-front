@@ -217,10 +217,13 @@ onMounted(() => {
         v-loading="groupLoading"
         element-loading-text="加载中..."
     >
-      <el-table-column prop="id" label="ID" width="60"/>
+      <el-table-column prop="id" label="ID" width="80"/>
       <el-table-column prop="name" label="分组名称"/>
       <el-table-column prop="description" label="描述"/>
-      <el-table-column prop="type" label="类型" width="120">
+      <el-table-column prop="type" label="类型" width="120" :filters="[
+        { text: '系统分组', value: 'SYSTEM' },
+        { text: '自定义分组', value: 'CUSTOM' }
+      ]" :filter-method="(value, row) => row.type === value" filter-placement="bottom">
         <template #default="scope">
           <el-tag :type="scope.row.type === 'SYSTEM' ? 'danger' : 'primary'">
             {{ scope.row.type === 'SYSTEM' ? '系统分组' : '自定义分组' }}

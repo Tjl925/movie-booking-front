@@ -88,7 +88,7 @@ router.beforeEach((to, from, next) => {
   }
 
   // 检查是否已登录（判断token是否存在）
-  if (!userInfo.token && to.path !== '/Home') {
+  if (!userInfo.token && to.path.startsWith('/seat-selection')) {
     ElMessage.warning('请先登录');
     next('/Login');
     return;

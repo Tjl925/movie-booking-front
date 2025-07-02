@@ -10,11 +10,12 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import {onMounted, ref} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import axios from "axios"
 import { ElMessage } from 'element-plus'
 import { useUserInfoStore } from '@/stores/userInfo'
+import {login} from "@/api/user";
 
 const route = useRoute()
 const router = useRouter()
@@ -34,12 +35,47 @@ onMounted(async () => {
           throw new Error('后端返回数据不完整')
         }
 
-        userInfoStore.setUserInfo({
-          ...res.data.user,
-          token: res.data.token
-        })
+        const loginDTO={
+          username: res.data.user.username,
+          password: res.data.user.password
+        }
 
-        router.push('/Home')
+        login(loginDTO).then(res=>{
+          console.info(res);
+          if (res.status) {
+            // 保存用户信息和token到store
+            const userInfo = res.data.userInfo;
+            const token = res.data.token;
+
+            // 将用户信息和token保存到store
+            userInfoStore.setUserInfo({
+              ...userInfo,
+              token: token
+            });
+
+            // 根据角色ID进行不同的页面重定向
+            ElMessage({
+              message: '登录成功啦！',
+              type: 'success',
+              plain: true,
+            })
+
+            // 将roleId转换为数字类型进行比较
+            const roleId = Number(userInfo.roleId);
+
+            // 根据roleId决定重定向页面
+            if (roleId === 1) {
+              // 超级管理员
+              router.push({path: '/superadmin'});
+            } else if (roleId === 2) {
+              // 管理员
+              router.push({path: '/admin'});
+            } else {
+              // 普通用户
+              router.push({path: '/Home'});
+            }
+          }
+        })
       } else {
         router.push({
           path: '/bind-qq',

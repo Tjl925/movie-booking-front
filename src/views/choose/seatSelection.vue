@@ -231,7 +231,7 @@ const seatStatus = {
   RESERVED: 'RESERVED',
   OCCUPIED: 'OCCUPIED',
   MAINTENANCE: 'MAINTENANCE',
-  SELECTING: 'SELECTING' // 新增的"当前选座"状态
+  SELECTING: 'SELECTING' // "当前选座"状态
 }
 // 图例项
 const legendItems = ref([
@@ -239,10 +239,9 @@ const legendItems = ref([
   { type: 'reserved', text: '已预定座位' },
   { type: 'occupied', text: '已售座位' },
   { type: 'maintenance', text: '维修中座位' },
-  { type: 'selecting', text: '当前选座' }, // 新增图例
+  { type: 'selecting', text: '当前选座' }, // 图例
 ])
 
-// 方法定义
 const getMovieDetail = async () => {
   const res = await getMovieById(movieId)
   if (res.status) {
@@ -362,7 +361,7 @@ const confirmOrder = async () => {
     // 2. 准备数据并验证
     const seatIds = new Set();
     const seatsToCheck = [];
-    const seatDetails = []; // 新增：用于存储座位详情
+    const seatDetails = []; // 存储座位详情
 
     for (const pos of selectedSeats.value) {
       const [row, col] = pos.split('-').map(Number);

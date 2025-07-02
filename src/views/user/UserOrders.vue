@@ -1,7 +1,8 @@
 <script setup>
 import {ref, onMounted, h} from 'vue';
-import {getUserOrders, cancelOrder, deleteOrder, refundOrder, getIsRated} from '@/api/orders';
-import {ElMessage, ElMessageBox, ElRate} from 'element-plus';
+import {ElRate} from 'element-plus';
+import {getUserOrders, cancelOrder, refundOrder, deleteOrder} from '@/api/orders';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { useUserInfoStore } from '@/stores/userInfo';
 import { useRoute, useRouter } from 'vue-router';
 import { ArrowDown, ArrowUp, Delete } from '@element-plus/icons-vue';
@@ -192,7 +193,23 @@ const handleRefund = (row) => {
       if (response.data === '退款成功') {
         ElMessage.success('退款申请成功');
         // 刷新订单列表
-        fetchOrders();
+        fetchUserOrders();
+      } else if (response.message && response.message.includes('退款处理中')) {
+        // 处理系统错误情况，提示用户稍后查询
+        ElMessageBox.confirm(
+          '退款正在处理中，可能需要一些时间。是否立即查询退款状态？',
+          '退款处理中',
+          {
+            confirmButtonText: '查询退款状态',
+            cancelButtonText: '稍后再查',
+            type: 'info',
+          }
+        ).then(() => {
+          // 用户选择立即查询退款状态
+           handleQueryRefundStatus(row.id);
+        }).catch(() => {
+          ElMessage.info('您可以稍后在订单详情中查询退款状态');
+        });
       } else {
         ElMessage.error(response.message || '退款申请失败');
       }
@@ -318,7 +335,16 @@ onMounted(() => {
 
 <template>
   <div class="user-orders">
-    <h2>我的订单</h2>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2>我的订单</h2>
+      <el-button
+          type="primary"
+          size="default"
+          @click="router.push('/Home')"
+      >
+        返回首页
+      </el-button>
+    </div>
     
     <div v-loading="loading" element-loading-text="加载中..." class="orders-container">
       <div v-if="tableData.length === 0 && !loading" class="no-orders">
@@ -452,6 +478,14 @@ onMounted(() => {
           
           <!-- 右侧操作按钮 -->
           <div class="order-actions" @click.stop>
+            <el-button
+                type="success"
+                :disabled="order.status !== 'PENDING'"
+                @click="router.push('/order-info/' + order.id)"
+                class="action-btn"
+            >
+              立即支付
+            </el-button>
             <el-button
                 type="success"
                 :disabled="order.status !== 'COMPLETED' || order.isRated"
