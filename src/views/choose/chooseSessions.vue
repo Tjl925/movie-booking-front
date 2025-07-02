@@ -1,8 +1,9 @@
 <template>
   <TopNav />
-  <div class="booking-page">
-    <!-- 电影基本信息区域 -->
-    <div class="movie-info-card">
+  <div class="movie-details-container">
+    <!-- 主要内容区域 -->
+    <div class="movie-content">
+      <!-- 电影基本信息区域 -->
       <el-row :gutter="30" class="info-section">
         <el-col :span="8">
           <div class="poster-container">
@@ -11,13 +12,11 @@
         </el-col>
         <el-col :span="16">
           <div class="movie-info">
-            <h1 class="movie-title">{{ movie.title }}</h1>
-
+            <h1 class="mainmovie-title">{{ movie.title }}</h1>
             <!-- 电影标签 -->
             <div class="movie-tags">
-              <el-tag v-for="tag in movie.tags" :key="tag" type="info" size="small">{{ tag }}</el-tag>
+              <el-tag v-for="tag in movie.tags" :key="tag" type="warning" size="medium">{{ tag }}</el-tag>
             </div>
-
             <!-- 基本信息 -->
             <div class="base-info">
               <p>
@@ -34,84 +33,105 @@
                 <span>时长：{{ movie.durationMinutes }}分钟</span>
                 <span>上映日期：{{ formatDate(movie.releaseDate) }}</span>
               </p>
+              <p>
+                <span>累计票房：</span>
+                <br>
+                <span :class="['artistic-font', { 'text-gray-500': !movie.boxOffice }]">
+                  {{ formattedBoxOffice }}
+                </span>
+              </p>
             </div>
 
-            <!-- 评分和票房 -->
+            <!-- 评分和票房区域 -->
             <div class="rating-box">
               <div class="rating-score">
-                <el-rate v-model="movie.rating" disabled text-color="#ff9900" />
+                <el-rate v-model="movie.rating" disabled text-color="#ffd700" size="large" />
                 <span class="score-number">{{ movie.rating }}分</span>
                 <span class="rating-count">({{ movie.ratingCount }}人评分)</span>
               </div>
               <div class="box-office">
-                <span>觀看人數：{{movie.viewCount}}人</span>
+                <span>观看人数：{{movie.viewCount}}人</span>
               </div>
             </div>
           </div>
         </el-col>
       </el-row>
-    </div>
 
-    <!-- 场次列表区域 -->
-    <div class="showtime-list-container">
-      <h2 class="section-title">选择场次</h2>
-      <div class="showtime-filter">
-        <el-select v-model="selectedDate" placeholder="选择日期" style="width: 180px;">
-          <el-option
-              v-for="date in dateOptions"
-              :key="date"
-              :label="formatDate(date)"
-              :value="date"
-          />
-        </el-select>
-        <el-select v-model="selectedCinema" placeholder="选择影院" style="width: 180px;">
-          <el-option
-              v-for="cinema in cinemaOptions"
-              :key="cinema.id"
-              :label="cinema.name"
-              :value="cinema.id"
-          />
-        </el-select>
-      </div>
+      <!-- 场次列表区域 -->
+      <div class="showtime-list-container">
+        <h2 class="section-title">选择场次</h2>
+        <div class="showtime-filter">
+          <el-select v-model="selectedDate" placeholder="选择日期" style="width: 180px;">
+            <el-option label="全部日期" value="" />
+            <el-option
+                v-for="date in dateOptions"
+                :key="date"
+                :label="formatDate(date)"
+                :value="date"
+            />
+          </el-select>
+          <el-select v-model="selectedCinema" placeholder="选择影院" style="width: 180px;">
+            <el-option
+                v-for="cinema in cinemaOptions"
+                :key="cinema.id"
+                :label="cinema.name"
+                :value="cinema.id"
+            />
+          </el-select>
+        </div>
 
-      <div v-if="filteredShowtimes.length > 0" class="showtime-list">
-        <div
-            v-for="showtime in filteredShowtimes"
-            :key="showtime.id"
-            class="showtime-item"
-        >
-          <div class="showtime-info">
-            <div class="showtime-cinema">{{ showtime.cinemaName }}</div>
-            <div class="showtime-time-row">
-              <span class="showtime-date">{{ formatDate(showtime.showDate) }}</span>
-              <span class="showtime-time">{{ showtime.startTime }} - {{ showtime.endTime }}</span>
+        <div v-if="filteredShowtimes.length > 0" class="showtime-list">
+          <div
+              v-for="showtime in paginatedShowtimes"
+              :key="showtime.id"
+              class="showtime-item"
+          >
+            <div class="showtime-info">
+              <div class="showtime-cinema">{{ showtime.cinemaName }}</div>
+              <div class="showtime-time-row">
+                <span class="showtime-date">{{ formatDate(showtime.showDate) }}</span>
+                <span class="showtime-time">{{ showtime.startTime }} - {{ showtime.endTime }}</span>
+              </div>
+              <div class="showtime-hall-row">
+                <el-tag class="hall-type-tag" effect="dark" :type="getHallTypeTagType(showtime.hallType)">
+                  {{ showtime.hallType }}
+                </el-tag>
+                <span class="hall-name">{{ showtime.hallName }}</span>
+              </div>
+              <div class="showtime-seats" :class="{ 'low-seats': showtime.availableSeats < 10 }">
+                剩余座位: {{ showtime.availableSeats }}
+              </div>
             </div>
-            <div class="showtime-hall-row">
-              <el-tag class="hall-type-tag" effect="dark" :type="getHallTypeTagType(showtime.hallType)">
-                {{ showtime.hallType }}
-              </el-tag>
-              <span class="hall-name">{{ showtime.hallName }}</span>
-            </div>
-            <div class="showtime-seats" :class="{ 'low-seats': showtime.availableSeats < 10 }">
-              剩余座位: {{ showtime.availableSeats }}
+            <div class="showtime-actions">
+              <div class="price-container">
+                <span class="price">¥{{ showtime.price.toFixed(2) }}</span>
+                <span class="price-hint">起</span>
+              </div>
+              <el-button
+                  type="primary"
+                  @click="goToSeatSelection(showtime.movieId, showtime.id)"
+                  :disabled="showtime.availableSeats <= 0"
+              >
+                {{ showtime.availableSeats > 0 ? '选座购票' : '已售罄' }}
+              </el-button>
             </div>
           </div>
-          <div class="showtime-actions">
-            <div class="price-container">
-              <span class="price">¥{{ showtime.price.toFixed(2) }}</span>
-              <span class="price-hint">起</span>
-            </div>
-            <el-button
-                type="primary"
-                @click="goToSeatSelection(showtime.movieId, showtime.id)"
-                :disabled="showtime.availableSeats <= 0"
-            >
-              {{ showtime.availableSeats > 0 ? '选座购票' : '已售罄' }}
-            </el-button>
+          <div class="pagination-container">
+            <el-pagination
+                v-model:current-page="currentPage"
+                :page-size="pageSize"
+                :total="filteredShowtimes.length"
+                layout="prev, pager, next, jumper"
+                background
+                @current-change="handlePageChange"
+            />
           </div>
         </div>
+        <div v-else class="showtime-list">
+          <el-empty description="暂无场次可选，敬请期待~" />
+        </div>
       </div>
-  </div>
+    </div>
   </div>
 </template>
 
@@ -130,12 +150,56 @@ const router = useRouter()
 const movieId = route.params.id;
 
 const showtimes = ref([]);
-const cinemaOptions = ref([{ id: 0, name: '全部影厅' }]); // 改为影厅选择
+const cinemaOptions = ref([{ id: 0, name: '全部影厅' }]);
 const dateOptions = ref([]);
 const selectedDate = ref('')
-const selectedCinema = ref(0) // 现在实际是选择影厅
+const selectedCinema = ref(0)
 const loading = ref(false);
 const movie = ref({});
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+// 计算当前页显示的场次
+const paginatedShowtimes = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredShowtimes.value.slice(start, end)
+})
+
+// 计算总页数
+const totalPages = computed(() => {
+  return Math.ceil(filteredShowtimes.value.length / pageSize.value)
+})
+const handlePageChange = (newPage) => {
+  currentPage.value = newPage
+  // 可以添加滚动到顶部的行为
+  window.scrollTo({
+    top: document.querySelector('.showtime-list-container').offsetTop - 20,
+    behavior: 'smooth'
+  })
+}
+// 格式化票房数字
+const formattedBoxOffice = computed(() => {
+  if (!movie.value.boxOffice || movie.value.boxOffice === 0) {
+    return '暂无数据';
+  }
+  return formatBoxOffice(movie.value.boxOffice);
+});
+
+const formatBoxOffice = (amount) => {
+  if (!amount || amount === 0) return '暂无数据';
+  const inWan = amount / 10000;
+  if (inWan >= 10000) {
+    const yi = Math.floor(inWan / 10000);
+    const remainingWan = Math.floor(inWan % 10000);
+    return `${yi}.${Math.floor(remainingWan/1000)}亿`;
+  } else if (inWan >= 1) {
+    return `${inWan.toFixed(1)}万`;
+  } else {
+    return amount.toString();
+  }
+};
+
 const getHallTypeTagType = (hallType) => {
   const typeMap = {
     'IMAX': 'danger',
@@ -146,6 +210,7 @@ const getHallTypeTagType = (hallType) => {
   };
   return typeMap[hallType] || 'info';
 };
+
 const fetchData = async () => {
   loading.value = true;
   try {
@@ -160,42 +225,44 @@ const fetchData = async () => {
     console.log('API返回的场次数据:', sessionsRes.data);
 
     if (sessionsRes.status) {
-      // 转换数据结构 - 根据SessionInfo结构调整
-      showtimes.value = sessionsRes.data.map(session => ({
-        id: session.sessionId,
-        movieId: movieId,
-        showDate: dayjs(session.startTime).format('YYYY-MM-DD'),
-        startTime: dayjs(session.startTime).format('HH:mm'),
-        endTime: dayjs(session.endTime).format('HH:mm'),
-        cinemaId: 0, // 没有影院ID，统一设为0
-        cinemaName: '默认影院', // 因为没有影院信息
-        hallId: 0, // 没有hallId返回，可能需要调整
-        hallName: session.hallName || '未知影厅',
-        hallType: session.hallType || '标准厅',
-        price: session.minPrice ? Number(session.minPrice) : 0, // 使用minPrice作为价格
-        availableSeats: session.availableSeats || 0
-      }));
+      const now = dayjs();
+      const today = now.format('YYYY-MM-DD');
 
-      // 生成日期选项
-      dateOptions.value = [...new Set(showtimes.value.map(item => item.showDate))].sort();
-
-      // 生成影厅选项（因为没有影院，改为影厅筛选）
+      // 转换数据结构
+      showtimes.value = sessionsRes.data.map(session => {
+        const startTime = dayjs(session.sessionTime);
+        return {
+          id: session.sessionId,
+          movieId: movieId,
+          showDate: startTime.format('YYYY-MM-DD'),
+          startTime: startTime.format('HH:mm'),
+          endTime: dayjs(session.endTime).format('HH:mm'),
+          cinemaName: session.cinemaName || '默认影院',
+          hallName: session.hallName || '未知影厅',
+          hallType: session.hallType || '标准厅',
+          price: session.basePrice * (session.priceAdjustment || 1),
+          availableSeats: session.availableSeats || 0,
+          rawStartTime: startTime
+        };
+      });
+      console.log(showtimes.value)
+      // 生成日期选项（按日期排序）
+      dateOptions.value = [...new Set(showtimes.value.map(item => item.showDate))]
+          .sort((a, b) => new Date(a) - new Date(b));
+      console.log(dateOptions.value)
+      // 生成影厅选项
       const uniqueHalls = showtimes.value.reduce((acc, item) => {
         if (!acc.some(hall => hall.name === item.hallName)) {
-          acc.push({
-            id: acc.length + 1, // 生成唯一ID
-            name: item.hallName
-          });
+          acc.push({ id: acc.length + 1, name: item.hallName });
         }
         return acc;
       }, []);
 
       cinemaOptions.value = [{ id: 0, name: '全部影厅' }, ...uniqueHalls];
 
-      // 设置默认选中第一个日期
-      if (dateOptions.value.length > 0) {
-        selectedDate.value = dateOptions.value[0];
-      }
+      // 默认选中今天（如果今天有场次）
+      const hasTodaySessions = showtimes.value.some(s => s.showDate === today);
+      selectedDate.value = hasTodaySessions ? today : '';
     }
   } catch (error) {
     console.error('获取数据失败:', error);
@@ -204,20 +271,24 @@ const fetchData = async () => {
   }
 };
 
-// 计算属性：筛选后的场次列表
+// 修改筛选逻辑
 const filteredShowtimes = computed(() => {
-  return showtimes.value.filter(showtime => {
-    const dateMatch = !selectedDate.value || showtime.showDate === selectedDate.value;
-    // 现在cinemaId没有意义，改为按影厅名称筛选
-    const hallMatch = selectedCinema.value === 0 ||
-        showtime.hallName === cinemaOptions.value.find(c => c.id === selectedCinema.value)?.name;
-    return dateMatch && hallMatch;
-  });
+  return showtimes.value
+      .filter(showtime => {
+        // 日期匹配：如果没选日期则显示全部，否则匹配选中日期
+        const dateMatch = !selectedDate.value || showtime.showDate === selectedDate.value;
+
+        // 影厅匹配
+        const hallMatch = selectedCinema.value === 0 ||
+            showtime.hallName === cinemaOptions.value.find(c => c.id === selectedCinema.value)?.name;
+
+        return dateMatch && hallMatch;
+      })
+      .sort((a, b) => a.rawStartTime - b.rawStartTime);
 });
 
 // 跳转到选座界面
 const goToSeatSelection = (movieId, sessionId) => {
-  // 找到当前点击的场次
   const selectedShowtime = showtimes.value.find(s => s.id === sessionId)
   if (!selectedShowtime) return
 
@@ -243,7 +314,8 @@ const getFullUrl = (url) => {
 
 // 格式化日期
 const formatDate = (date) => {
-  return dayjs(date).format('YYYY年MM月DD日')
+  if (!date) return '全部日期';
+  return dayjs(date).format('YYYY年MM月DD日');
 }
 
 onMounted(() => {
@@ -252,76 +324,206 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.booking-page {
-  width: 1200px;
-  margin: 0 auto;
-  padding: 20px 0;
-  /* 改为渐变色背景，增加层次感 */
-  background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
-  min-height: 100vh; /* 确保背景覆盖整个视口 */
-}
-.booking-page::after {
-  content: "";
-  display: block;
-  height: 80px;
-  width: 100%;
-  background: linear-gradient(to top, #4a90e2, transparent);
-  margin-top: 30px;
-  border-radius: 12px 12px 0 0;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
-}
-/* 电影信息卡片 */
-.movie-info-card,
-.showtime-list-container {
-  background-color: #fff;
-  border-radius: 12px;
-  padding: 25px;
-  margin-bottom: 30px;
-  /* 增强阴影效果，模拟悬浮感 */
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08), 0 3px 6px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s, box-shadow 0.3s;
+/* 全局样式变量 */
+:root {
+  --primary-color: #f8fafc;
+  --secondary-color: #ffffff;
+  --accent-color: #e53e3e;
+  --text-color: #1a202c;
+  --light-text: #4a5568;
+  --gold-color: #d4af37;
+  --bg-gradient: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
 }
 
-/* 鼠标悬停时微抬升效果 */
-.movie-info-card:hover,
-.showtime-list-container:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+.movie-details-container {
+  background: var(--bg-gradient);
+  color: var(--text-color);
+  min-height: 100vh;
+  padding-bottom: 50px;
+}
+
+.movie-content {
+  width: 1200px;
+  margin: 0 auto;
+  padding: 30px 0;
+}
+
+/* 信息区域样式 */
+.info-section {
+  background: var(--secondary-color);
+  border-radius: 16px;
+  padding: 15px 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.info-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #e53e3e, #f56565, #ed8936);
+  animation: gradientMove 15s linear infinite;
+}
+
+@keyframes gradientMove {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 .poster-container {
   position: relative;
-  text-align: center;
+  width: 95%;
+  height: 50px;
+  padding-bottom: 130%;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
 }
 
 .movie-poster {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  max-height: 400px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 8px;
+  transition: transform 0.5s ease;
 }
 
-.movie-title {
+.movie-poster:hover {
+  transform: scale(1.03);
+}
+
+.movie-info {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mainmovie-title {
   font-size: 28px;
   font-weight: bold;
   margin-bottom: 15px;
   color: #333;
+  position: relative;
 }
 
-/* 场次列表 */
+.mainmovie-title::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--accent-color);
+  border-radius: 3px;
+}
+
+.movie-tags {
+  margin: 15px 0;
+}
+
+.el-tag {
+  background-color: #ebf8ff;
+  border-color: #bee3f8;
+  color: #3182ce;
+  transition: all 0.3s ease;
+  margin-right: 8px;
+}
+
+.el-tag:hover {
+  background-color: #3182ce;
+  border-color: #3182ce;
+  color: white;
+  transform: translateY(-3px);
+}
+
+.base-info {
+  color: var(--light-text);
+  line-height: 2;
+  margin: 20px 0;
+  font-size: 16px;
+}
+
+.base-info span {
+  color: var(--text-color);
+  margin-right: 10px;
+  font-weight: 500;
+}
+
+/* 评分区域样式 */
+.rating-box {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0;
+  padding: 15px 0;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  width: 100%;
+}
+
+.rating-score {
+  display: flex;
+  align-items: center;
+}
+
+.score-number {
+  font-size: 32px;
+  font-weight: bold;
+  color: #e53e3e;
+  margin: 0 15px;
+}
+
+.rating-count, .box-office span {
+  color: var(--light-text);
+  font-size: 16px;
+}
+
+.artistic-font {
+  font-family: 'Alex Brush', cursive;
+  font-size: 28px;
+  font-weight: normal;
+  color: #6a11cb;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.text-gray-500 {
+  color: #a0aec0;
+}
+
+/* 场次列表样式 */
 .showtime-list-container {
-  background-color: #fff;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  background: var(--secondary-color);
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
 }
 
 .section-title {
-  font-size: 20px;
-  font-weight: bold;
+  font-size: 22px;
+  font-weight: 700;
   margin-bottom: 20px;
+  color: var(--text-color);
   padding-bottom: 10px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid #e2e8f0;
+  position: relative;
+}
+
+.section-title::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 60px;
+  height: 2px;
+  background: var(--accent-color);
 }
 
 .showtime-filter {
@@ -421,9 +623,74 @@ onMounted(() => {
   margin-top: 2px;
 }
 
-.no-sessions {
-  text-align: center;
-  padding: 40px;
-  color: #999;
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .movie-content {
+    width: 90%;
+  }
+}
+
+@media (max-width: 992px) {
+  .info-section {
+    flex-direction: column;
+  }
+
+  .el-col {
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  .rating-box {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .poster-container {
+    padding-bottom: 100%;
+  }
+
+  .base-info, .rating-count, .box-office span {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 576px) {
+  .movie-content {
+    padding: 20px 15px;
+  }
+
+  .info-section {
+    padding: 20px;
+  }
+
+  .score-number {
+    font-size: 28px;
+  }
+}
+.pagination-container {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  padding: 15px 0;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .el-pagination {
+    --el-pagination-button-width: 28px;
+    --el-pagination-button-height: 28px;
+    font-size: 12px;
+  }
+
+  .el-pagination .btn-prev,
+  .el-pagination .btn-next,
+  .el-pagination .number {
+    min-width: 28px;
+    height: 28px;
+    line-height: 28px;
+  }
 }
 </style>

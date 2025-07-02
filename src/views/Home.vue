@@ -14,7 +14,7 @@
         <div class="movie-list">
           <!-- 电影项循环 -->
           <div
-              v-for="movie in movies"
+              v-for="movie in movies.slice(0,8)"
               :key="movie.id"
               class="movie-item"
               @click="goToDetail(movie.id)"
@@ -54,10 +54,10 @@
               <h3 class="movie-title">{{ movie.title }}</h3>
               <div class="movie-rating no-rating">暂无评分</div>
               <button
-                  class="buy-ticket-btn disabled"
-                  disabled
+                  class="buy-ticket-btn-booking"
+
               >
-                即将上映
+                预购
               </button>
             </div>
           </div>
@@ -67,8 +67,42 @@
 
       <!-- 右侧评分最高TOP10区域 -->
       <div class="right-section">
+
+        <div v-if="isLoggedIn.valueOf()" class="top-list-container">
+          <h2 class="section-title">猜您喜欢</h2>
+          <div class="top5-list">
+            <div
+                v-for="(movie, index) in mayLikeMovies"
+                :key="movie.id"
+                class="top5-item"
+                @mouseenter="hoverIndex = index"
+                @mouseleave="hoverIndex = -1"
+                :class="{
+          'hover-effect': hoverIndex === index,
+          'top3-item': index < 3,
+          'hover-top3': hoverIndex === index && index < 3
+        }"
+                @click="goToDetail(movie.id)"
+            >
+              <div class="top5-rank" :class="{'top3-rank': index < 3}">
+                {{ index + 1 }}
+              </div>
+              <div class="top5-info">
+                <h3 class="top5-title">{{ movie.title }}</h3>
+                <div class="top5-rating">{{ movie.rating }}分</div>
+              </div>
+              <div
+                  v-if="index < 3"
+                  class="poster-preview"
+                  :style="{backgroundImage: `url(${getUrl(movie.posterUrl)})`}"
+              ></div>
+            </div>
+          </div>
+        </div>
+
+
         <!-- 评分最高TOP5 -->
-        <div class="top-list-container">
+        <div v-if="!isLoggedIn.valueOf()" class="top-list-container">
           <h2 class="section-title">评分最高</h2>
           <div class="top5-list">
             <div
@@ -143,20 +177,23 @@
 import TopNav from './components/TopNav.vue';
 import { useRouter } from "vue-router";
 import {getShowingMoives, getUpcomingMovies} from "@/api/user"
-import {onMounted, ref} from "vue";
+import {computed, onMounted, ref} from "vue";
 import {getTop10Movies} from "@/api/user"
-import {getBestBoxOfficeMovies} from "@/api/movie";
+import {getBestBoxOfficeMovies, getMovieRecommendation} from "@/api/movie";
+import {useUserInfoStore} from "@/stores/userInfo";
 const movies = ref([])
 const top10Movies = ref([])
+const mayLikeMovies = ref([])
 const bestBoxOfficeMovies = ref([])
 const upComingMovies = ref([]); // 即将上映电影
 const hoverIndex = ref(-1)// 新增悬停状态跟踪
 const boxOfficeHoverIndex = ref(-1) // 票房列表悬停状态跟踪
+const userInfoStore = useUserInfoStore();
 const Page = ref({
   current:1,
   size:8,
 })
-
+const isLoggedIn = ref(computed(() => !(!userInfoStore || !userInfoStore.userInfo.token)));
 const getMovies = async () => {
   getShowingMoives(Page.value.current,Page.value.size).then(res=>{
     movies.value=res.data.records;
@@ -166,6 +203,12 @@ const getMovies = async () => {
 const gettop10Movies = async () => {
   getTop10Movies().then(res=>{
     top10Movies.value=res.data;
+  })
+}
+const getMayLike = async () => {
+  const userInfoStore = useUserInfoStore();
+  getMovieRecommendation(userInfoStore.userInfo.id).then(res=>{
+    mayLikeMovies.value=res.data;
   })
 }
 const getBestBoxOfficeMoviesList = async () => {
@@ -198,6 +241,15 @@ const goToDetail = (movieId) => {
     path: `/movie-info/${movieId}`
   });
 };
+// const isLoggedIn=()=>{
+//   const userInfoStore = useUserInfoStore();
+//   console.log('当前用户信息:', userInfoStore);
+//   if (!userInfoStore || !userInfoStore.token)
+//   {
+//       return false;
+//   }
+//   else return true;
+// }
 
 const goToBooking = (movieId) => {
   router.push({
@@ -213,8 +265,7 @@ const formatBoxOffice = (amount) => {
     const yi = Math.floor(inWan / 10000)
     const remainingWan = Math.floor(inWan % 10000)
     return `${yi}.${Math.floor(remainingWan/1000)}亿`
-  } else if (inWan >= 1000) {
-    return `${(inWan / 1000).toFixed(1)}千万`
+
   } else if (inWan >= 1) {
     return `${inWan.toFixed(1)}万`
   } else {
@@ -223,9 +274,12 @@ const formatBoxOffice = (amount) => {
 }
 onMounted(async () => {
   await getMovies();
-  await gettop10Movies();
   await getBestBoxOfficeMoviesList();
   await getUpComingMovies();
+  console.log(isLoggedIn.value)
+  console.log(userInfoStore)
+  await getMayLike();
+  await gettop10Movies();
 });
 </script>
 
@@ -469,7 +523,17 @@ onMounted(async () => {
   width: 100%;
   transition: background-color 0.3s;
 }
-
+.buy-ticket-btn-booking {
+  background-color: red;
+  color: black;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.3s;
+}
 .buy-ticket-btn:hover {
   background-color: #cc3330;
 }

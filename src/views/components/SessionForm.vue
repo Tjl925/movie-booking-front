@@ -224,7 +224,8 @@ const submitForm = async () => {
       
       try {
         if (props.isEdit) {
-          await updateSession(sessionData);
+          console.log(props.sessionData.id)
+          await updateSession(props.sessionData.id,sessionData);
           ElMessage.success('场次更新成功');
         } else {
           await createSession(sessionData);

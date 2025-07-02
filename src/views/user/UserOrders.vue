@@ -1,11 +1,11 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { getUserOrders, cancelOrder, deleteOrder, refundOrder } from '@/api/orders';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import {ref, onMounted, h} from 'vue';
+import {getUserOrders, cancelOrder, deleteOrder, refundOrder, getIsRated} from '@/api/orders';
+import {ElMessage, ElMessageBox, ElRate} from 'element-plus';
 import { useUserInfoStore } from '@/stores/userInfo';
 import { useRoute, useRouter } from 'vue-router';
 import { ArrowDown, ArrowUp, Delete } from '@element-plus/icons-vue';
-
+import {ratingMovies} from "@/api/movie";
 // 获取用户信息和路由参数
 const userInfoStore = useUserInfoStore();
 const route = useRoute();
@@ -46,6 +46,7 @@ const fetchUserOrders = async () => {
     );
     if (response.status) {
       tableData.value = response.data.records;
+      console.log(response.data.records);
       pagination.value.total = response.data.total;
     } else {
       ElMessage.error('获取订单列表失败');
@@ -244,7 +245,72 @@ const goToMovieDetail = (event, movieId) => {
     ElMessage.info('电影信息不完整，无法查看详情');
   }
 };
+const ratingDTO=ref({
+  orderId:'',
+  movieId:'',
+  rating:'',
+})
+const handleRating = async (order) => {
+  // 使用ref创建响应式变量
+  const ratingValue = ref(0);
 
+  try {
+    await ElMessageBox({
+      title: '为电影评分',
+      customClass: 'rating-dialog',
+      message: () => {
+        return h('div', { class: 'rating-content' }, [
+          h('div', { class: 'rating-stars' }, [
+            h(ElRate, {
+              modelValue: ratingValue.value,
+              'onUpdate:modelValue': (val) => ratingValue.value = val,
+              colors: ['#99A9BF', '#F7BA2A', '#FF9900'],
+              voidColor: '#C0C4CC',
+              showText: true,
+              textColor: '#FF9900',
+              max:10,
+              textTemplate: '{value} 分'
+            })
+          ]),
+          h('div', { class: 'rating-hint' }, '滑动星星选择您的评分')
+        ]);
+      },
+      showCancelButton: true,
+      confirmButtonText: '提交',
+      cancelButtonText: '取消',
+      beforeClose: async (action, instance, done) => {
+        if (action === 'confirm') {
+          if (!ratingValue.value) {
+            ElMessage.warning('请选择评分星级');
+            return;
+          }
+
+          instance.confirmButtonLoading = true;
+          try {
+            ratingDTO.value.orderId=order.id
+            ratingDTO.value.movieId=order.session?.movie?.id
+            ratingDTO.value.rating=ratingValue.value
+            const res = await ratingMovies(ratingDTO.value);
+            if (res.success) {
+              ElMessage.success(`感谢您的 ${ratingValue.value} 星评价！`);
+              fetchUserOrders();
+            }
+          } finally {
+            instance.confirmButtonLoading = false;
+            done();
+          }
+        } else {
+          done();
+        }
+      }
+    });
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('评分出错:', error);
+      ElMessage.error(error.message || '评分失败');
+    }
+  }
+};
 onMounted(() => {
   fetchUserOrders();
 });
@@ -387,6 +453,14 @@ onMounted(() => {
           <!-- 右侧操作按钮 -->
           <div class="order-actions" @click.stop>
             <el-button
+                type="success"
+                :disabled="order.status !== 'COMPLETED' || order.isRated"
+                @click="handleRating(order)"
+                class="action-btn"
+            >
+              我要评分
+            </el-button>
+            <el-button
               type="warning"
               :disabled="order.status !== 'PENDING'"
               @click="handleCancel(order)"
@@ -396,7 +470,7 @@ onMounted(() => {
             </el-button>
             <el-button
               type="danger"
-              :disabled="order.status !== 'PAID'"
+              :disabled="order.status !== 'PAID' "
               @click="handleRefund(order)"
               class="action-btn"
             >
@@ -686,5 +760,46 @@ h2 {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
+}
+:deep(.rating-dialog) {
+  width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+:deep(.rating-dialog .el-message-box__header) {
+  padding: 20px 20px 10px;
+}
+
+:deep(.rating-dialog .el-message-box__content) {
+  padding: 0 20px 20px;
+}
+
+.rating-content {
+  text-align: center;
+  padding: 10px 0;
+}
+
+.rating-stars {
+  margin: 20px 0;
+}
+
+:deep(.rating-stars .el-rate) {
+  display: inline-block;
+}
+
+:deep(.rating-stars .el-rate__icon) {
+  font-size: 32px;
+  margin-right: 8px;
+}
+
+:deep(.rating-stars .el-rate__text) {
+  font-size: 18px;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.rating-hint {
+  color: #909399;
 }
 </style>

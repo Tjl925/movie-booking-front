@@ -4,7 +4,7 @@ export const createOrder = (orderCreationDTO, uid) => request.post('/api/orders'
 export const getBySeatId = (id) => request.get(`/api/seats/${id}`);
 export const getByOrderId = (id) => request.get(`/api/orders/${id}`);
 export const getOrderDetail = (orderId, userId) => request.post('/api/orders/detail', { orderId, userId });
-
+export const getAllOrdersByUserId=(userId)=>Request.get(`/api/orders/user/${userId}/all`);
 export const cancelOrder = (orderId, userId) => {
     return request({
         url: `/api/orders/${orderId}/cancel`,
@@ -47,3 +47,4 @@ export const refundOrder = (orderId, refundReason) => {
         data: { orderId, refundReason } // 使用data而不是params，确保请求方法为POST
     })
 }
+export const getIsRated=(id)=>request.get(`/api/orders/${id}/rated`)
