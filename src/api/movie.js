@@ -69,3 +69,5 @@ export const getMovieRecommendations = (movieId, limit = 5) =>
       params: { limit }
     });
 export const getBestBoxOfficeMovies=()=>request.get('/api/movies/public/boxOffice', {})
+export const ratingMovies=(ratingDTO)=>request.post('/api/movies/public/rate',ratingDTO);
+export const getMovieRecommendation = (userId = 5) => request.get(`/api/movies/public/recommendations/${userId}`);

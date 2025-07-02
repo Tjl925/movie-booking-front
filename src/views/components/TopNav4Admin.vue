@@ -1,39 +1,196 @@
 <script setup>
-import {ArrowDown} from '@element-plus/icons-vue'
+import {onBeforeUnmount, ref} from 'vue'
+import { ArrowDown } from '@element-plus/icons-vue';
 import {useRouter} from 'vue-router';
-import {logout} from "@/api/user";
+import { ElMessage } from "element-plus";
+import {updateUserProfile, uploadAvatar, changePassword, logout} from "@/api/user";
 import {useUserInfoStore} from "@/stores/userInfo";
-import {ElMessage} from "element-plus";
 
 const router = useRouter();
+const userInfoStore = useUserInfoStore();
 
-// 登出跳转
+// 1. 处理下拉菜单命令
 const handleCommand = (command) => {
-  if (command == 'log_out') {
-    const userInfoStore = useUserInfoStore();
+  if (command === 'log_out') {
     const token = userInfoStore.userInfo.token;
-    if (token){
-      logout(token).then((res)=>{
+    if (token) {
+      logout(token).then((res) => {
         console.info(res);
-        // 清除本地存储的用户数据
         userInfoStore.removeUserInfo();
-        // 显示登出成功提示
         ElMessage.success('登出成功');
-        // 跳转到首页
         router.push('/Home');
-      })
+      });
     }
+  } else if (command === 'update') {
+    showUpdate();
+  } else if (command === 'changePassword') {
+    showChangePassword();
+  }
+};
+
+// 2. 通用工具函数
+const previewUrls = ref([]);
+const getUrl =(url)=>{
+  console.log(userInfoStore.userInfo);
+  return `http://127.0.0.1:8888/uploads${url}`;
+}
+const getPreviewUrl = (file) => {
+  if (!file) return '';
+
+  // 生成预览URL
+  const url = URL.createObjectURL(file);
+
+  // 存储URL以便后续释放
+  previewUrls.value.push(url);
+
+  return url;
+};
+// 组件卸载时释放所有预览URL，避免内存泄漏
+onBeforeUnmount(() => {
+  previewUrls.value.forEach(url => URL.revokeObjectURL(url));
+  previewUrls.value = [];
+});
+// 信息脱敏函数
+// 手机号脱敏：显示前3位和后4位
+const maskPhone = (phone) => {
+  if (!phone) return '';
+  return phone.length > 7
+      ? `${phone.substring(0, 3)}****${phone.substring(phone.length - 4)}`
+      : '****';
+};
+const maskEmail = (email) => {
+  if (!email) return '';
+  const [username, domain] = email.split('@');
+  if (!username || !domain) return email;
+
+  const maskedUsername = username.length > 3
+      ? `${username.substring(0, 3)}****`
+      : '****';
+
+  return `${maskedUsername}@${domain}`;
+};
+
+
+// 3. 用户信息修改相关
+const updateDialogVisible = ref(false);
+const updateDTO = ref({
+  username: "",
+  email: "",
+  phone: "",
+  avatar: ""
+});
+const avatarFile = ref(null);
+
+const showUpdate = () => {
+  updateDTO.value = {
+    username: "",
+    email: "",
+    phone: "",
+    avatar: ""
+  };
+  updateDialogVisible.value = true;
+};
+
+const update = async () => {
+  try {
+    const userId = userInfoStore.userInfo?.id;
+    if (!userId) throw new Error('用户未登录');
+
+    // 1. 如果有新头像，先上传头像
+    let avatarUrl = null;
+    if (avatarFile.value) {
+      const uploadRes = await uploadAvatar(userId, avatarFile.value);
+      avatarUrl = uploadRes.data; // 假设返回的是头像URL字符串
+    }
+
+    // 2. 更新用户信息
+    const payload = {
+      username: updateDTO.value.username || undefined,
+      email: updateDTO.value.email || undefined,
+      phone: updateDTO.value.phone || undefined,
+      avatar: avatarUrl || undefined
+    };
+
+    // 移除undefined字段
+    Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+
+    // 3. 执行更新
+    await updateUserProfile(userId, payload);
+
+    // 4. 更新本地store数据
+    userInfoStore.setUserInfo({
+      ...userInfoStore.userInfo,
+      ...payload
+    });
+
+    ElMessage.success('修改成功！');
+    updateDialogVisible.value = false;
+    avatarFile.value = null;
+
+  } catch (error) {
+    ElMessage.error(`修改失败: ${error.message}`);
   }
 }
 
+const handleAvatarChange = (file) => {
+  // 验证文件类型和大小
+  const isJpgOrPng = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png';
+  const isLt2M = file.raw.size / 1024 / 1024 < 2;
 
+  if (!isJpgOrPng) {
+    ElMessage.error('只能上传 JPG/PNG 格式的图片!');
+    return false;
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!');
+    return false;
+  }
+
+  // 先释放之前的URL
+  if (avatarFile.value) {
+    URL.revokeObjectURL(avatarFile.value);
+  }
+
+  avatarFile.value = file.raw;
+  return true; // 确保返回true表示验证通过
+};
+
+// 4. 密码修改相关
+const passwordDialogVisible = ref(false);
+const ChangePasswordDTO = ref({
+  oldPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+  userId:null
+});
+
+const showChangePassword = () => {
+  passwordDialogVisible.value=true;
+}
+const handlePasswordUpdate = async () => {
+  ChangePasswordDTO.value.userId=userInfoStore.userInfo.id;
+  changePassword(ChangePasswordDTO.value).then((res) => {
+    if (res.status) {
+      // 成功逻辑
+      ElMessage.success(res.message || '密码修改成功');
+      passwordDialogVisible.value = false;
+      const username = userInfoStore.userInfo.username;
+      userInfoStore.removeUserInfo(); // 清除用户信息
+      router.push({
+        path: '/Login',
+        query: {username}
+      });
+    } else {
+      // 失败逻辑
+      ElMessage.error(res.message || '密码修改失败，请检查输入');
+    }
+  })
+
+};
 </script>
-
 
 <template>
   <div class="top-nav">
-    <!-- 用于调试的文本 -->
-    <!-- 头部容器：Logo + 菜单 + 搜索 + 头像 -->
     <div class="nav-container">
       <!-- Logo 区域 -->
       <div class="logo-box">
@@ -43,27 +200,134 @@ const handleCommand = (command) => {
 
       <!-- 头像区域 -->
       <div class="avatar-box">
-        <!-- 如需下拉菜单，可在这里扩展 -->
         <el-dropdown size="mini" @command="handleCommand">
-          <!-- 触发区域：头像 + 下拉箭头 -->
           <span class="el-dropdown-trigger">
-            <el-avatar icon="el-icon-user" class="avatar"></el-avatar>
+            <template v-if="userInfoStore.userInfo.id!=null">
+              <el-avatar
+                  :src="getUrl(userInfoStore.userInfo.avatar) || '@/assets/default-avatar.jpg'"
+                  class="avatar"
+              />
+              <span class="username">{{ userInfoStore.userInfo.username }}</span>
+            </template>
+            <template v-else>
+              <el-avatar icon="el-icon-user" class="avatar"/>
+            </template>
             <el-icon class="dropdown-arrow">
               <ArrowDown/>
             </el-icon>
           </span>
-          <!-- 下拉菜单 -->
           <template #dropdown>
             <el-dropdown-menu class="custom-dropdown-menu">
-              <el-dropdown-item command="log_out">退出账号</el-dropdown-item>
+              <el-dropdown-item command="update">基本信息</el-dropdown-item>
+              <el-dropdown-item command="changePassword">修改密码</el-dropdown-item>
+              <el-dropdown-item command="log_out">退出登录</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
       </div>
     </div>
   </div>
-</template>
 
+  <!-- 修改用户信息对话框 -->
+  <el-dialog v-model="updateDialogVisible" title="修改个人信息" width="700">
+    <el-form :model="updateDTO">
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <div class="current-info">
+            <h4>当前信息</h4>
+            <el-form-item label="用户名">
+              <div class="readonly-field">
+                {{ userInfoStore.userInfo.username }}
+              </div>
+            </el-form-item>
+            <el-form-item label="邮箱">
+              <div class="readonly-field">
+                {{ maskEmail(userInfoStore.userInfo.email) }}
+              </div>
+            </el-form-item>
+            <el-form-item label="手机号">
+              <div class="readonly-field">
+                {{ maskPhone(userInfoStore.userInfo.phone) }}
+              </div>
+            </el-form-item>
+            <el-form-item label="头像">
+              <el-avatar :size="100" :src="getUrl(userInfoStore.userInfo.avatar)" />
+            </el-form-item>
+          </div>
+        </el-col>
+        <el-col :span="12">
+          <div class="update-info">
+            <h4>修改信息</h4>
+            <el-form-item label="新用户名">
+              <el-input v-model="updateDTO.username" placeholder="输入新用户名" />
+            </el-form-item>
+            <el-form-item label="新邮箱">
+              <el-input v-model="updateDTO.email" placeholder="输入新邮箱" />
+            </el-form-item>
+            <el-form-item label="新手机号">
+              <el-input v-model="updateDTO.phone" placeholder="输入新手机号" />
+            </el-form-item>
+            <el-form-item label="新头像">
+              <el-upload
+                  :auto-upload="false"
+                  :show-file-list="false"
+                  :on-change="handleAvatarChange"
+                  :accept="'image/jpeg,image/png'"
+              >
+                <el-button type="primary">选择新头像</el-button>
+                <template #tip>
+                  <div class="el-upload__tip">支持 JPG/PNG 格式，大小不超过 2MB</div>
+                </template>
+              </el-upload>
+              <div v-if="avatarFile" class="avatar-preview">  <!-- 移除 && avatarFile.value -->
+                <span>新头像预览：</span>
+                <el-avatar :size="100" :src="getPreviewUrl(avatarFile)" />  <!-- 直接使用 avatarFile -->
+              </div>
+            </el-form-item>
+          </div>
+        </el-col>
+      </el-row>
+    </el-form>
+    <template #footer>
+      <el-button @click="updateDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="update">确认修改</el-button>
+    </template>
+  </el-dialog>
+
+  <!-- 修改密码对话框 -->
+  <el-dialog v-model="passwordDialogVisible" title="修改密码" width="500">
+    <el-form :model="ChangePasswordDTO" label-width="100px">
+      <el-form-item label="旧密码" prop="newPassword">
+        <el-input
+            v-model="ChangePasswordDTO.oldPassword"
+            type="password"
+            show-password
+            placeholder="请输入当前密码"
+        />
+      </el-form-item>
+      <el-form-item label="新密码" prop="confirmPassword">
+        <el-input
+            v-model="ChangePasswordDTO.newPassword"
+            type="password"
+            show-password
+            placeholder="请输入新密码"
+        />
+      </el-form-item>
+      <el-form-item label="确认密码" prop="confirmPassword">
+        <el-input
+            v-model="ChangePasswordDTO.confirmPassword"
+            type="password"
+            show-password
+            placeholder="请再次输入新密码"
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <el-button @click="passwordDialogVisible = false">取消</el-button>
+      <el-button type="primary" @click="handlePasswordUpdate">确认修改</el-button>
+    </template>
+  </el-dialog>
+</template>
 
 <style scoped>
 /* 头部容器：居中布局 + 固定宽度 */
@@ -73,18 +337,25 @@ const handleCommand = (command) => {
 }
 
 .nav-container {
-  width: 100%;
+  width: 1200px;
   height: 60px;
-  margin: 0 auto; /* 居中容器 */
+  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 20px;
 }
 
+/* Logo 样式 */
 .logo-box {
   display: flex;
   align-items: center;
-  margin-left: 10px;
+  cursor: pointer;
+}
+
+.logo-box:hover {
+  background-color: #f5f5f5;
+  border-radius: 4px;
 }
 
 .logo-img {
@@ -94,36 +365,14 @@ const handleCommand = (command) => {
 }
 
 .logo-text {
-  color:red;
   font-size: 20px;
   font-weight: bold;
 }
 
-/* 菜单样式：强制不换行、不折叠 */
-.no-ellipsis-menu {
-  /* 覆盖 Element Plus 默认的省略号逻辑 */
-
-  .el-menu--horizontal {
-    flex-wrap: nowrap !important; /* 禁止菜单项换行 */
-  }
-
-  .el-menu__item {
-    white-space: nowrap; /* 禁止文字换行 */
-  }
-
-  /* 隐藏自动生成的省略号按钮 */
-
-  .el-menu__more {
-    display: none !important;
-  }
-}
-
-
 /* 头像容器：用于控制触发区域的布局 */
 .avatar-box {
-  position: relative; /* 为下拉菜单的绝对定位提供参考 */
-  display: inline-block; /* 收缩为内容宽度，方便居中 */
-  margin-right: 40px;
+  position: relative;
+  display: inline-block;
 }
 
 /* 触发区域样式：头像和箭头水平排列 */
@@ -150,10 +399,52 @@ const handleCommand = (command) => {
 
 /* 关键：下拉菜单居中 */
 .custom-dropdown-menu {
-  /* 相对于触发区域居中 */
   left: 50% !important;
   transform: translateX(-50%) !important;
-  margin-top: 8px !important; /* 与头像保持间距 */
-  /* 覆盖 Element Plus 默认的 left: 0 */
+  margin-top: 8px !important;
+}
+
+.username {
+  margin-left: 8px;
+  font-size: 14px;
+  color: #333;
+}
+
+.avatar-preview {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 只读输入框样式 */
+:deep(.el-input.is-disabled .el-input__inner) {
+  background-color: #f5f7fa;
+  border-color: #e4e7ed;
+  color: #606266;
+  cursor: not-allowed;
+}
+
+.readonly-field {
+  padding: 6px 12px;
+  min-height: 32px;
+  line-height: 1.5;
+  border-radius: 4px;
+  background-color: #f5f7fa;
+  color: #606266;
+  display: inline-block;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 进一步区分左右列 */
+.current-info {
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  padding: 20px;
+}
+
+.update-info {
+  padding: 20px;
 }
 </style>

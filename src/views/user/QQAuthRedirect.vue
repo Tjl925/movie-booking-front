@@ -54,11 +54,11 @@ onMounted(async () => {
     } catch (error) {
       console.error('QQ登录失败:', error)
       ElMessage.error('QQ登录失败: ' + error.message)
-      router.push('/login')
+      router.push('/Login')
     }
   } else {
     ElMessage.error('未获取到QQ授权码')
-    router.push('/login')
+    router.push('/Login')
   }
 })
 </script>

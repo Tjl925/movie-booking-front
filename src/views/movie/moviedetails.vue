@@ -13,7 +13,7 @@
         </el-col>
         <el-col :span="16">
           <div class="movie-info">
-            <h1 class="movie-title">{{ movie.title }}</h1>
+            <h1 class="mainmovie-title">{{ movie.title }}</h1>
             <!-- 电影标签 -->
             <div class="movie-tags">
               <el-tag v-for="tag in movie.tags" :key="tag" type="warning" size="medium">{{ tag }}</el-tag>
@@ -91,7 +91,7 @@
         </el-tab-pane>
       </el-tabs>
       <div class="recommendations-section">
-        <h3 class="section-title">猜你喜欢</h3>
+        <h3 class="section-title">相似电影</h3>
         <div class="movie-grid">
           <div v-for="(movie, index) in recommendedMovies" :key="index" class="movie-card" @click="goToDetail(movie.id)">
             <img :src="getFullUrl(movie.posterUrl)" :alt="movie.title" class="movie-thumbnail">
@@ -279,16 +279,6 @@ const goToBooking = () => {
   flex-direction: column;
   height: 100%;
 }
-
-.movie-title {
-  font-size: 32px;
-  font-weight: 800;
-  margin-bottom: 10px;
-  color: var(--text-color);
-  position: relative;
-  display: inline-block;
-}
-
 .movie-title::after {
   content: "";
   position: absolute;
@@ -510,10 +500,7 @@ h3::after {
     width: 100% !important;
     flex: none !important;
   }
-
-  .movie-title {
-    font-size: 32px;
-  }
+、
 
   .rating-box {
     flex-direction: column;
@@ -527,9 +514,6 @@ h3::after {
     padding-bottom: 100%;
   }
 
-  .movie-title {
-    font-size: 28px;
-  }
 
   .base-info, .rating-count, .box-office span {
     font-size: 14px;
@@ -549,11 +533,6 @@ h3::after {
   .info-section {
     padding: 20px;
   }
-
-  .movie-title {
-    font-size: 24px;
-  }
-
   .score-number {
     font-size: 28px;
   }
@@ -626,7 +605,6 @@ h3::after {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .movie-meta {
   display: flex;
   flex-direction: column;

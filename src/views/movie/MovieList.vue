@@ -276,7 +276,7 @@ const handleSizeChange = (newSize) => {
 
 const goToDetail = (movieId) => {
   router.push({
-    path: `/movie/${movieId}`
+    path: `/movie-info/${movieId}`
   });
 };
 const goToBooking = (movieId) => {

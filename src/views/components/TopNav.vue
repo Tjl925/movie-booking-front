@@ -74,6 +74,9 @@ const handleMenuClick = (index) => {
     router.push('/MovieList');
   }
 };
+const goToHome = () => {
+  router.push('/Home');
+}
 // 处理搜索
 const handleSearch = (key) => {
   router.push({
@@ -254,7 +257,7 @@ const handlePasswordUpdate = async () => {
   <div class="top-nav">
     <div class="nav-container">
       <!-- Logo 区域 -->
-      <div class="logo-box">
+      <div class="logo-box"@click="goToHome">
         <img src="@/assets/logo.png" alt="logo" class="logo-img" />
         <span class="logo-text">猫眼电影</span>
       </div>
@@ -460,8 +463,6 @@ const handlePasswordUpdate = async () => {
             placeholder="请再次输入新密码"
         />
       </el-form-item>
-
-
     </el-form>
     <template #footer>
       <el-button @click="passwordDialogVisible = false">取消</el-button>
@@ -492,6 +493,12 @@ const handlePasswordUpdate = async () => {
 .logo-box {
   display: flex;
   align-items: center;
+  cursor: pointer; /* 鼠标指针变为手型，提示可点击 */
+}
+
+.logo-box:hover {
+  background-color: #f5f5f5; /* 鼠标悬停时背景颜色变化 */
+  border-radius: 4px; /* 添加圆角 */
 }
 .logo-img {
   width: 40px;

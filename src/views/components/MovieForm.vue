@@ -24,7 +24,7 @@
         <el-input v-model="form.actors" placeholder="请输入主演姓名，多个演员用逗号分隔"></el-input>
       </el-form-item>
       <el-form-item label="类型" prop="genre">
-        <el-input v-model="form.genre" placeholder="请输入电影类型，如动作、喜剧等"></el-input>
+        <el-input v-model="form.genre" placeholder="请输入电影类型，多个类型用逗号分隔"></el-input>
       </el-form-item>
       <el-form-item label="时长(分钟)" prop="durationMinutes">
         <el-input-number v-model="form.durationMinutes" :min="1" :max="999"></el-input-number>
@@ -170,13 +170,47 @@ const rules = {
     { required: true, message: '请选择上映日期', trigger: 'change' }
   ],
   endDate: [
-    { required: true, message: '请选择下映日期', trigger: 'change' }
+    { required: true, message: '请选择下映日期', trigger: 'change' },
+    {
+      validator: (rule, value, callback) => {
+        const releaseDate = form.value.releaseDate; // 注意这里改为 form.value
+        if (!releaseDate || !value) {
+          callback(); // 如果任一日期为空，跳过验证（由required规则处理）
+          return;
+        }
+        if (new Date(value) <= new Date(releaseDate)) {
+          callback(new Error('下映日期必须在上映日期之后'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'change'
+    }
   ],
   director: [
     { required: true, message: '请输入导演姓名', trigger: 'blur' }
   ],
   genre: [
-    { required: true, message: '请输入电影类型', trigger: 'blur' }
+    { required: true, message: '请输入电影类型', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (!value) return callback();
+        // 检查是否包含非法分隔符
+        if (/[\s、]/.test(value)) {
+          return callback(new Error('请使用逗号(,)分隔多个类型'));
+        }
+        // 检查是否至少有一个逗号（如果有多个类型）
+        if (value.includes(',') || value.includes('，')) {
+          callback();
+        } else {
+          if (/[和与及]/.test(value)) {
+            return callback(new Error('请使用逗号(,)分隔多个类型'));
+          }
+          callback();
+        }
+      },
+      trigger: 'blur'
+    }
   ],
   language: [
     { required: true, message: '请输入电影语言', trigger: 'blur' }

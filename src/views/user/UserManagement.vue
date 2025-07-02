@@ -12,6 +12,7 @@ import {
   removeUserFromGroup,
   getUserGroups
 } from '@/api/admin';
+import {uploadAvatar} from "@/api/user";
 
 // 用户管理相关数据和方法
 const searchKeyword = ref('');
@@ -133,6 +134,13 @@ const handleEdit = (row) => {
 // 提交编辑表单
 const submitEditForm = async () => {
   try {
+
+    let avatarUrl = null;
+    if (avatarFile.value) {
+      const uploadRes = await uploadAvatar(editForm.value.id, avatarFile.value);
+      avatarUrl = uploadRes.data; // 假设返回的是头像URL字符串
+    }
+    editForm.value.avatar = avatarUrl;
     const response = await updateUser(editForm.value.id, editForm.value);
     if (response.status) {
       ElMessage.success('用户更新成功');
@@ -180,7 +188,7 @@ const handleStatusChange = async (row) => {
     const response = await updateUserStatus(row.id, newStatus);
     if (response.status) {
       ElMessage.success(`用户${statusText}成功`);
-      loadUserList(); // 重新加载用户列表
+      await loadUserList(); // 重新加载用户列表
     }
   } catch (error) {
     console.error(`${statusText}用户失败:`, error);
@@ -188,8 +196,45 @@ const handleStatusChange = async (row) => {
   }
 };
 
+//处理头像
+const avatarFile = ref(null);
+const previewUrls = ref([]);
+const getPreviewUrl = (file) => {
+  if (!file) return '';
 
+  // 生成预览URL
+  const url = URL.createObjectURL(file);
 
+  // 存储URL以便后续释放
+  previewUrls.value.push(url);
+
+  return url;
+};
+const handleAvatarChange = (file) => {
+  // 验证文件类型和大小
+  const isJpgOrPng = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png';
+  const isLt2M = file.raw.size / 1024 / 1024 < 2;
+
+  if (!isJpgOrPng) {
+    ElMessage.error('只能上传 JPG/PNG 格式的图片!');
+    return false;
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!');
+    return false;
+  }
+
+  // 先释放之前的URL
+  if (avatarFile.value) {
+    URL.revokeObjectURL(avatarFile.value);
+  }
+
+  avatarFile.value = file.raw;
+  return true; // 确保返回true表示验证通过
+};
+const getUrl =(url)=>{
+  return `http://127.0.0.1:8888/uploads${url}`;
+}
 // 打开用户分组关联对话框
 const handleManageUserGroups = async (user) => {
   try {
@@ -288,7 +333,7 @@ onMounted(() => {
             >
               <el-image
                   style="width: 100px; height: 100px"
-                  src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png"
+                  :src="getUrl(props.row.avatar)"
               />
             </el-descriptions-item>
             <el-descriptions-item label="ID" align="center">{{ props.row.id }}</el-descriptions-item>
@@ -404,7 +449,21 @@ onMounted(() => {
           <el-input v-model.number="editForm.roleId" placeholder="请输入角色ID"></el-input>
         </el-form-item>
         <el-form-item label="头像URL">
-          <el-input v-model="editForm.avatar" placeholder="请输入头像URL"></el-input>
+          <el-upload
+              :auto-upload="false"
+              :show-file-list="false"
+              :on-change="handleAvatarChange"
+              :accept="'image/jpeg,image/png'"
+          >
+            <el-button type="primary">选择新头像</el-button>
+            <template #tip>
+              <div class="el-upload__tip">支持 JPG/PNG 格式，大小不超过 2MB</div>
+            </template>
+          </el-upload>
+          <div v-if="avatarFile" class="avatar-preview">  <!-- 移除 && avatarFile.value -->
+            <span>新头像预览：</span>
+            <el-avatar :size="100" :src="getPreviewUrl(avatarFile)" />  <!-- 直接使用 avatarFile -->
+          </div>
         </el-form-item>
       </el-form>
       <template #footer>

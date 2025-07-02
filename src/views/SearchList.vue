@@ -91,6 +91,11 @@ const handlePageChange = (page) => {
   current.value = page;
   fetchSearchResults();
 };
+const goToDetail = (movieId) => {
+  router.push({
+    path: `/movie-info/${movieId}`
+  });
+};
 </script>
 
 <style scoped>
