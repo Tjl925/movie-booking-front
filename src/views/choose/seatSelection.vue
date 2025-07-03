@@ -713,7 +713,7 @@ onMounted(async () => {
             transition: all 0.2s;
 
             &.available {
-              background-color: var(--el-color-success);
+              background-color: #dcdfe6;//var(--el-color-success)
               color: white;
 
               &:hover {
@@ -723,13 +723,13 @@ onMounted(async () => {
             }
 
             &.reserved {
-              background-color: var(--el-color-warning);
+              background-color: var(--el-color-warning);   //var(--el-color-warning)
               color: white;
               cursor: not-allowed;
             }
 
             &.occupied {
-              background-color: #dcdfe6;
+              background-color: var(--el-color-danger);
               color: #909399;
               cursor: not-allowed;
             }
@@ -756,13 +756,13 @@ onMounted(async () => {
             &.selected {
 
 
-              background-color: var(--el-color-danger);
+              background-color: var(--el-color-success);
               color: white;
               transform: scale(1.1);
               box-shadow: 0 0 0 2px rgba(var(--el-color-danger-rgb), 0.3);
 
               &:hover {
-                background-color: var(--el-color-danger-light-3);
+                background-color: var(--el-color-success-light-3);
               }
             }
           }
@@ -787,7 +787,7 @@ onMounted(async () => {
           border-radius: 2px;
 
           &.available {
-            background-color: var(--el-color-success);
+            background-color: #dcdfe6;//#dcdfe6
           }
 
           &.reserved {
@@ -795,17 +795,17 @@ onMounted(async () => {
           }
 
           &.occupied {
-            background-color: #dcdfe6;
+            background-color: var(--el-color-danger);
           }
 
           &.maintenance {
             background-color: var(--el-color-info);
           }
           &.selecting {
-            background-color: var(--el-color-danger);
+            background-color: var(--el-color-success);
           }
           &.selected {
-            background-color: var(--el-color-danger);
+            background-color: var(--el-color-success);
           }
         }
 
