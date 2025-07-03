@@ -1,6 +1,15 @@
 <template>
   <div class="home">
     <TopNav />
+
+    <Particles
+        id="tsparticles"
+        :particlesInit="particlesInit"
+        :particlesLoaded="particlesLoaded"
+        :options="options"
+        class="particles-bg"
+    />
+
     <!-- 主内容区域 - 左右分栏布局 -->
     <div class="main-content">
       <!-- 左侧电影列表区域 -->
@@ -181,6 +190,132 @@ import {computed, onMounted, ref} from "vue";
 import {getTop5Movies} from "@/api/user"
 import {getBestBoxOfficeMovies, getMovieRecommendation} from "@/api/movie";
 import {useUserInfoStore} from "@/stores/userInfo";
+import {loadSlim} from "tsparticles-slim";
+//粒子效果
+const options = ref({
+
+      background: {
+
+        color: {
+
+          value: 'grey'
+        }
+      },
+      // backgroundColor:'#000000',
+      fpsLimit: 120,
+      interactivity: {
+        // 交互性
+        events: {
+          // 事件
+          onClick: {
+            // 1.点击
+            enable: true,
+            mode: 'push' // "push", "remove", "repulse", "bubble"
+          },
+          onHover: {
+            // 2.悬停
+            enable: true,
+            mode: 'grab'  // "grab"(磁吸), "repulse"(排斥), "bubble"(气泡)
+          },
+          resize: true //调整大小
+        },
+        modes: {
+
+          // 气泡
+          bubble: {
+
+            distance: 400,
+            duration: 2, //持续时间
+            opacity: 0.8,
+            size: 40
+          },
+          // 推
+          push: {
+
+            quantity: 4 //数量
+          },
+          // 排斥
+          repulse: {
+
+            distance: 200,
+            duration: 0.4
+          }
+        }
+      },
+      // 粒子
+      particles: {
+
+        color: {
+
+          value: '#e64340'
+        },
+        // 是否用直线连接起来
+        links: {
+
+          color: '#e64340',
+          distance: 150,
+          enable: true,
+          opacity: 0.5,
+          width: 1
+        },
+        // 碰撞
+        collisions: {
+
+          enable: true
+        },
+        // 移动
+        move: {
+
+          direction: 'none',
+          enable: true,
+          // 输出模式
+          outModes: {
+
+            default: 'bounce' //弹跳
+          },
+          random: false, //是否随机
+          speed: 2, // 速度
+          straight: false //是否直线
+        },
+        number: {
+
+          // 密度 用value值除以区域值
+          density: {
+
+            enable: true,
+            area: 1000
+          },
+          value: 80
+        },
+        opacity: {
+
+          value: 0.5
+        },
+        // 形状
+        shape: {
+
+          type: 'circle'
+        },
+        size: {
+
+          value: {
+            min: 1, max: 5 },
+        }
+      },
+      detectRetina: true
+    }
+)
+const particlesInit = async engine => {
+
+  //await loadFull(engine);
+  await loadSlim(engine);
+};
+
+const particlesLoaded = async container => {
+
+  console.log("Particles container loaded", container);
+}
+
 const movies = ref([])
 const top5Movies = ref([])
 const mayLikeMovies = ref([])
@@ -294,12 +429,12 @@ onMounted(async () => {
 .right-section {
   flex: 1;
   background: #fff;
-  padding: 15px;
+  padding: 10px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
 }
 
 .section-header {
@@ -311,7 +446,7 @@ onMounted(async () => {
 .section-title {
   font-size: 25px;
   font-weight: bold;
-  margin-top: 50px;
+  margin-top: 25px;
   margin-bottom: 15px;
   padding-bottom: 10px;
   border-bottom: 2px solid #e0e0e0;
@@ -649,5 +784,13 @@ onMounted(async () => {
 
 .buy-ticket-btn.disabled:hover {
   background-color: #ccc;
+}
+.particles-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
 }
 </style>

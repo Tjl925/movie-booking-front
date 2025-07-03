@@ -177,7 +177,11 @@ const checkConflict = async () => {
   
   const startTime = dayjs(form.sessionTime).format('YYYY-MM-DD HH:mm:ss');
   const endTime = dayjs(form.sessionTime).add(props.movieData.durationMinutes, 'minute').format('YYYY-MM-DD HH:mm:ss');
-  
+  if(endTime>=props.movieData.endDate||startTime<=props.movieData.releaseDate)
+  {
+    conflictMessage.value = "时间冲突：场次不在电影上映期间"
+    return;
+  }
   try {
     const excludeSessionId = props.isEdit ? props.sessionData.id : null;
     const { data } = await checkSessionConflict(form.hallId, startTime, endTime, excludeSessionId);
