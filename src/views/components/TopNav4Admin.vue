@@ -1,9 +1,9 @@
 <script setup>
 import {onBeforeUnmount, ref} from 'vue'
-import { ArrowDown } from '@element-plus/icons-vue';
+import {ArrowDown} from '@element-plus/icons-vue';
 import {useRouter} from 'vue-router';
-import { ElMessage } from "element-plus";
-import {updateUserProfile, uploadAvatar, changePassword, logout} from "@/api/user";
+import {ElMessage} from "element-plus";
+import {changePassword, logout, updateUserProfile, uploadAvatar} from "@/api/user";
 import {useUserInfoStore} from "@/stores/userInfo";
 
 const router = useRouter();

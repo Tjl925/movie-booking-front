@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import {Document, Menu as IconMenu, Setting, User, Film, Key} from '@element-plus/icons-vue'
-import { defineEmits } from 'vue';
+import {Document, Film, Key, Menu as IconMenu, User} from '@element-plus/icons-vue'
+import {defineEmits} from 'vue';
 
 const emit = defineEmits(['menu-click']);
 

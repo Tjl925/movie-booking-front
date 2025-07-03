@@ -57,24 +57,72 @@
         <el-input-number v-model="form.basePrice" :min="0" :precision="2" :step="5" placeholder="请输入基础票价"></el-input-number>
       </el-form-item>
       <el-form-item label="海报" prop="posterUrl">
-        <el-image
-          v-if="form.posterUrl"
-          :src="getUrl(form.posterUrl)"
-          style="width: 150px; height: 200px"
-        ></el-image>
-        <el-upload
-          class="avatar-uploader"
-          action=""
-          :auto-upload="false"
-          :show-file-list="false"
-          :on-change="handlePosterChange"
-          style="margin-left: 20px"
-        >
-          <el-button type="primary">选择新海报</el-button>
-          <template #tip>
-            <div class="el-upload__tip">支持 JPG/PNG 格式，大小不超过 2MB</div>
-          </template>
-        </el-upload>
+        <!-- 显示现有海报或新选择的海报预览 -->
+        <div class="poster-preview-container">
+          <!-- 现有海报 -->
+          <el-image
+            v-if="form.posterUrl && !posterFile"
+            :src="getUrl(form.posterUrl)"
+            style="width: 150px; height: 200px"
+          ></el-image>
+          
+          <!-- 新选择的海报预览 -->
+          <el-image
+            v-if="posterFile"
+            :src="getPreviewUrl(posterFile)"
+            style="width: 150px; height: 200px"
+          ></el-image>
+          
+          <!-- 上传控件 -->
+          <el-upload
+            class="avatar-uploader"
+            action=""
+            :auto-upload="false"
+            :show-file-list="false"
+            :on-change="handlePosterChange"
+            style="margin-left: 20px"
+          >
+            <el-button type="primary">选择新海报</el-button>
+            <template #tip>
+              <div class="el-upload__tip">支持 JPG/PNG 格式，大小不超过 2MB</div>
+            </template>
+          </el-upload>
+        </div>
+      </el-form-item>
+      <el-form-item label="预告片" prop="trailerUrl">
+        <!-- 显示现有预告片或新选择的预告片预览 -->
+        <div class="trailer-upload-container">
+          <!-- 现有预告片 -->
+          <video
+              v-if="form.trailerUrl && !trailerFile"
+              :src="getUrl(form.trailerUrl)"
+              controls
+              style="width: 300px; max-height: 200px"
+          ></video>
+
+          <!-- 新选择的预告片预览 -->
+          <video
+              v-if="trailerFile"
+              :src="getPreviewUrl(trailerFile)"
+              controls
+              style="width: 300px; max-height: 200px"
+          ></video>
+
+          <!-- 上传控件 -->
+          <el-upload
+              class="trailer-uploader"
+              action=""
+              :auto-upload="false"
+              :show-file-list="false"
+              :on-change="handleTrailerChange"
+              style="margin-left: 20px"
+          >
+            <el-button type="primary">选择预告片</el-button>
+            <template #tip>
+              <div class="el-upload__tip">支持 MP4/AVI/MPEG/MOV 格式，大小不超过 100MB</div>
+            </template>
+          </el-upload>
+        </div>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -87,10 +135,9 @@
 </template>
 
 <script setup>
-import { ref, watch, defineProps, defineEmits } from 'vue';
+import { ref, watch, defineProps, defineEmits, onBeforeUnmount } from 'vue';
 import { ElMessage } from 'element-plus';
-import { Plus } from '@element-plus/icons-vue';
-import {createMovie, updateMovie, uploadPoster} from '@/api/movie';
+import {createMovie, updateMovie, uploadPoster, uploadVideo} from '@/api/movie';
 
 const props = defineProps({
   visible: {
@@ -113,6 +160,29 @@ const dialogVisible = ref(false);
 
 const posterFile = ref(null);
 const trailerFile = ref(null);
+
+// 存储生成的预览URL，用于组件卸载时释放
+const previewUrls = ref([]);
+
+// 生成预览URL函数
+const getPreviewUrl = (file) => {
+  if (!file) return '';
+
+  // 生成预览URL
+  const url = URL.createObjectURL(file);
+
+  // 存储URL以便后续释放
+  previewUrls.value.push(url);
+
+  return url;
+};
+
+// 组件卸载时释放所有预览URL，避免内存泄漏
+onBeforeUnmount(() => {
+  // 清理预览URL
+  previewUrls.value.forEach(url => URL.revokeObjectURL(url));
+  previewUrls.value = [];
+});
 
 // 表单数据
 const form = ref({});
@@ -139,6 +209,7 @@ watch(() => props.visible, (newVal, oldVal) => {
         endDate: '',
         country: '',
         posterUrl: '',
+        trailerUrl: '', // 新增
         basePrice: 30.00
       };
     }
@@ -154,6 +225,12 @@ watch(() => props.visible, (newVal, oldVal) => {
 // 监听dialogVisible变化，同步回props.visible
 watch(() => dialogVisible.value, (newVal) => {
   emit('update:visible', newVal);
+  
+  // 当对话框关闭时，清理预览URL
+  if (!newVal) {
+    previewUrls.value.forEach(url => URL.revokeObjectURL(url));
+    previewUrls.value = [];
+  }
 });
 
 // 表单验证规则
@@ -228,7 +305,7 @@ const getUrl =(url)=>{
   return `http://127.0.0.1:8888/uploads${url}`;
 }
 
-const handlePosterChange = async (file) => {
+const handlePosterChange = (file) => {
   // 验证文件类型和大小
   const isJpgOrPng = file.raw.type === 'image/jpeg' || file.raw.type === 'image/png';
   const isLt2M = file.raw.size / 1024 / 1024 < 2;
@@ -242,25 +319,21 @@ const handlePosterChange = async (file) => {
     return false;
   }
 
-  try {
-    // 先释放之前的URL
-    if (posterFile.value) {
-      URL.revokeObjectURL(posterFile.value);
+  // 先释放之前的URL
+  if (posterFile.value) {
+    const index = previewUrls.value.findIndex(url => url === getPreviewUrl(posterFile.value));
+    if (index !== -1) {
+      URL.revokeObjectURL(previewUrls.value[index]);
+      previewUrls.value.splice(index, 1);
     }
-    posterFile.value = file.raw;
-
-    // 立即上传图片到后端
-    // 如果是编辑模式且有ID，使用ID上传；否则使用临时ID
-    const movieId = props.isEdit && props.movieData.id ? props.movieData.id : 'temp';
-    const uploadRes = await uploadPoster(movieId, posterFile.value);
-    const posterUrl = uploadRes.data; // 假设返回的是海报URL字符串
-    form.value.posterUrl = posterUrl; // 让用户立即看到新海报
-    ElMessage.success('海报上传成功');
-  } catch (error) {
-    console.error('海报上传失败:', error);
-    ElMessage.error('海报上传失败');
-    return false;
   }
+  
+  // 保存文件引用，但不立即上传
+  posterFile.value = file.raw;
+  
+  // 生成预览URL供用户查看
+  ElMessage.success('海报已选择，提交表单时将上传');
+  
   return true;
 };
 
@@ -281,38 +354,100 @@ const handleClose = () => {
     posterFile.value = null;
   }
 };
+const handleTrailerChange = (file) => {
+  // 验证文件类型和大小
+  const allowedTypes = ['video/mp4', 'video/avi', 'video/mpeg', 'video/quicktime'];
+  const isVideo = allowedTypes.includes(file.raw.type);
+  const isLt100M = file.raw.size / 1024 / 1024 < 100;
 
+  if (!isVideo) {
+    ElMessage.error('只能上传 MP4/AVI/MPEG/MOV 格式的视频!');
+    return false;
+  }
+  if (!isLt100M) {
+    ElMessage.error('视频大小不能超过 100MB!');
+    return false;
+  }
+
+  // 先释放之前的URL
+  if (trailerFile.value) {
+    const index = previewUrls.value.findIndex(url => url === getPreviewUrl(trailerFile.value));
+    if (index !== -1) {
+      URL.revokeObjectURL(previewUrls.value[index]);
+      previewUrls.value.splice(index, 1);
+    }
+  }
+
+  // 保存文件引用
+  trailerFile.value = file.raw;
+
+  ElMessage.success('预告片已选择，提交表单时将上传');
+
+  return true;
+};
 // 提交表单
 const submitForm = async () => {
   if (!formRef.value) return;
-  
+
   await formRef.value.validate(async (valid, fields) => {
     if (valid) {
       try {
         // 准备提交的数据
         const movieData = { ...form.value };
+
         if (props.isEdit) {
           // 编辑模式
           await updateMovie(movieData.id, movieData);
+
+          // 如果有新海报，上传海报
+          if (posterFile.value) {
+            const uploadRes = await uploadPoster(movieData.id, posterFile.value);
+            const posterUrl = uploadRes.data;
+            form.value.posterUrl = posterUrl;
+          }
+
+          // 如果有新预告片，上传预告片
+          if (trailerFile.value) {
+            console.log('到这里来了哟')
+            const uploadRes = await uploadVideo(movieData.id, trailerFile.value);
+            const trailerUrl = uploadRes.data;
+            form.value.trailerUrl = trailerUrl;
+          }
+
           ElMessage.success('电影更新成功');
         } else {
-          // 添加模式
-          await createMovie(movieData);
+          // 添加模式 - 先创建电影获取ID，再上传海报和预告片
+          const createRes = await createMovie(movieData);
+          console.log(createRes.data)
+          if (createRes.data) {
+            const movieId = createRes.data.id;
+
+            // 上传海报
+            if (posterFile.value) {
+              await uploadPoster(movieId, posterFile.value);
+            }
+
+            // 上传预告片
+            if (trailerFile.value) {
+              await uploadVideo(movieId, trailerFile.value);
+            }
+          }
+
           ElMessage.success('电影添加成功');
         }
-        
+
         dialogVisible.value = false;
-        emit('update:visible', false); // 更新父组件的visible属性
-        emit('refresh'); // 通知父组件刷新数据
-        
+        emit('update:visible', false);
+        emit('refresh');
+
         // 重置表单
         formRef.value.resetFields();
-        
-        // 清除文件引用
-        if (posterFile.value) {
-          URL.revokeObjectURL(posterFile.value);
-          posterFile.value = null;
-        }
+
+        // 清除文件引用和预览URL
+        posterFile.value = null;
+        trailerFile.value = null;
+        previewUrls.value.forEach(url => URL.revokeObjectURL(url));
+        previewUrls.value = [];
       } catch (error) {
         console.error('提交失败:', error);
         ElMessage.error('操作失败: ' + (error.message || '未知错误'));
@@ -351,5 +486,19 @@ const submitForm = async () => {
   margin-top: 8px;
   color: var(--el-text-color-secondary);
   font-size: 12px;
+}
+
+.poster-preview-container {
+  display: flex;
+  align-items: flex-start;
+}
+.trailer-upload-container {
+  display: flex;
+  align-items: flex-start;
+}
+
+.trailer-uploader video {
+  border-radius: 6px;
+  border: 1px dashed #d9d9d9;
 }
 </style>

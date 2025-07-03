@@ -29,10 +29,10 @@ export const uploadPoster = (movieId, file) => {
 };
 
 // 上传电影视频
-export const uploadVideo = (movieId, file) => {
+export const uploadVideo = (id, file) => {
   const formData = new FormData();
   formData.append('file', file);
-  return request.post('/api/movies/${movieId}/video', formData, {
+  return request.post(`/api/movies/${id}/video`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }

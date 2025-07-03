@@ -164,26 +164,25 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted,nextTick } from 'vue'
+import {computed, nextTick, onMounted, ref} from 'vue'
 import dayjs from 'dayjs'
-import { useRoute } from 'vue-router'
-import { useRouter } from 'vue-router'
-import { ElMessage,ElLoading } from 'element-plus'
-import { getMovieById } from "@/api/movie"
-import { getSeatsForSelection } from "@/api/session"
+import {useRoute, useRouter} from 'vue-router'
+import {ElLoading, ElMessage} from 'element-plus'
+import {getMovieById} from "@/api/movie"
+import {getSeatsForSelection} from "@/api/session"
 import {
-  VideoCamera,
-  Clock,
-  Location,
   Calendar,
-  Tickets,
+  Clock,
+  Document,
+  Iphone,
+  Location,
   Money,
   Position,
-  Document,
-  Iphone
+  Tickets,
+  VideoCamera
 } from '@element-plus/icons-vue'
-import { useSessionStore } from '@/stores/session'
-import {createOrder,getBySeatId} from "@/api/orders";
+import {useSessionStore} from '@/stores/session'
+import {createOrder, getBySeatId} from "@/api/orders";
 import {useUserInfoStore} from "@/stores/userInfo";
 import {useOrderStore} from "@/stores/orderInfo";
 
@@ -195,7 +194,6 @@ const sessionId = route.params.sessionId
 console.log('电影ID:', movieId, '场次ID:', sessionId)
 const sessionStore = useSessionStore()
 const sessionInfo = computed(() => sessionStore.currentSession)
-const seatsInfo=ref({})
 const frontSeatsInfo = ref([]); // 用于界面展示的座位状态
 const backSeatsInfo = ref([]);  // 用于判断是否可选的真实座位状态
 const userInfoStore = useUserInfoStore();
