@@ -136,14 +136,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import {ElSelect, ElOption, ElButton, ElRate, ElTag, ElMessage} from 'element-plus'
+import {computed, onMounted, ref} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import {ElButton, ElMessage, ElOption, ElRate, ElSelect, ElTag} from 'element-plus'
 import dayjs from 'dayjs'
-import { getSessionInfosByMovieId } from "@/api/user";
+import {getSessionInfosByMovieId} from "@/api/user";
 import TopNav from "@/views/components/TopNav.vue";
-import { useSessionStore } from '@/stores/session'
-import { getMovieById } from "@/api/movie";
+import {useSessionStore} from '@/stores/session'
+import {getMovieById} from "@/api/movie";
 import {useUserInfoStore} from "@/stores/userInfo";
 import {getUserById} from "@/api/orders";
 
@@ -168,10 +168,6 @@ const paginatedShowtimes = computed(() => {
   return filteredShowtimes.value.slice(start, end)
 })
 
-// 计算总页数
-const totalPages = computed(() => {
-  return Math.ceil(filteredShowtimes.value.length / pageSize.value)
-})
 const handlePageChange = (newPage) => {
   currentPage.value = newPage
   // 可以添加滚动到顶部的行为
@@ -449,21 +445,6 @@ onMounted(() => {
   margin: 15px 0;
 }
 
-.el-tag {
-  background-color: #ebf8ff;
-  border-color: #bee3f8;
-  color: #3182ce;
-  transition: all 0.3s ease;
-  margin-right: 8px;
-}
-
-.el-tag:hover {
-  background-color: #3182ce;
-  border-color: #3182ce;
-  color: white;
-  transform: translateY(-3px);
-}
-
 .base-info {
   color: var(--light-text);
   line-height: 2;
@@ -513,10 +494,6 @@ onMounted(() => {
   font-weight: normal;
   color: #6a11cb;
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.text-gray-500 {
-  color: #a0aec0;
 }
 
 /* 场次列表样式 */
@@ -700,18 +677,5 @@ onMounted(() => {
 
 /* 响应式调整 */
 @media (max-width: 768px) {
-  .el-pagination {
-    --el-pagination-button-width: 28px;
-    --el-pagination-button-height: 28px;
-    font-size: 12px;
-  }
-
-  .el-pagination .btn-prev,
-  .el-pagination .btn-next,
-  .el-pagination .number {
-    min-width: 28px;
-    height: 28px;
-    line-height: 28px;
-  }
 }
 </style>

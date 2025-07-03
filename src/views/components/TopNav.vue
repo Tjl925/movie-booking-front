@@ -1,11 +1,18 @@
 <script setup>
-import {ref, watch} from 'vue';
-import { ArrowDown } from '@element-plus/icons-vue';
+import {onBeforeUnmount, ref, watch} from 'vue';
+import {ArrowDown} from '@element-plus/icons-vue';
 import {useRoute, useRouter} from 'vue-router';
-import { ElMessage } from "element-plus";
-import {register, updateUserProfile, uploadAvatar, changePassword,sendVerificationCode,verifyCode,validate} from "@/api/user";
-import { useUserInfoStore } from '@/stores/userInfo';
-import { onBeforeUnmount } from 'vue';
+import {ElMessage} from "element-plus";
+import {
+  changePassword,
+  register,
+  sendVerificationCode,
+  updateUserProfile,
+  uploadAvatar,
+  validate,
+  verifyCode
+} from "@/api/user";
+import {useUserInfoStore} from '@/stores/userInfo';
 
 // 1. 路由和状态管理
 const router = useRouter();
@@ -693,17 +700,6 @@ const handlePasswordUpdate = async () => {
 
 /* 菜单样式：强制不换行、不折叠 */
 .no-ellipsis-menu {
-  /* 覆盖 Element Plus 默认的省略号逻辑 */
-  .el-menu--horizontal {
-    flex-wrap: nowrap !important; /* 禁止菜单项换行 */
-  }
-  .el-menu__item {
-    white-space: nowrap; /* 禁止文字换行 */
-  }
-  /* 隐藏自动生成的省略号按钮 */
-  .el-menu__more {
-    display: none !important;
-  }
 }
 
 /* 搜索框样式 */
@@ -748,15 +744,12 @@ const handlePasswordUpdate = async () => {
   margin-top: 8px !important; /* 与头像保持间距 */
   /* 覆盖 Element Plus 默认的 left: 0 */
 }
+
 .username {
   margin-left: 8px;
   font-size: 14px;
   color: #333;
 }
-
-
-
-
 
 .avatar-preview {
   margin-top: 10px;
@@ -766,12 +759,6 @@ const handlePasswordUpdate = async () => {
 }
 
 /* 只读输入框样式 */
-:deep(.el-input.is-disabled .el-input__inner) {
-  background-color: #f5f7fa;
-  border-color: #e4e7ed;
-  color: #606266;
-  cursor: not-allowed;
-}
 .readonly-field {
   padding: 6px 12px;
   min-height: 32px;
@@ -790,10 +777,7 @@ const handlePasswordUpdate = async () => {
   border-radius: 4px;
   padding: 20px;
 }
-.disabled-button {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+
 .update-info {
   padding: 20px;}
 </style>

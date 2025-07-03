@@ -115,15 +115,13 @@
 </template>
 
 <script setup>
-import {ref, computed, onMounted, nextTick} from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import {
-  ElTabs, ElTabPane, ElRate, ElButton, ElCarousel, ElCarouselItem, ElIcon
-} from 'element-plus'
+import {computed, nextTick, onMounted, ref} from 'vue'
+import {useRoute, useRouter} from 'vue-router'
+import {ElButton, ElRate, ElTabPane, ElTabs} from 'element-plus'
 import dayjs from 'dayjs'
 import TopNav from "@/views/components/TopNav.vue";
-import {getMovieById,getMovieRecommendations} from "@/api/movie"
-import { VideoPlayer } from '@videojs-player/vue';
+import {getMovieById, getMovieRecommendations} from "@/api/movie"
+import {VideoPlayer} from '@videojs-player/vue';
 import 'video.js/dist/video-js.css';
 import {ArrowRight} from "@element-plus/icons-vue";
 // 接收路由参数
@@ -300,20 +298,6 @@ const goToBooking = () => {
   margin: 15px 0;
 }
 
-.el-tag {
-  background-color: #ebf8ff;
-  border-color: #bee3f8;
-  color: #3182ce;
-  transition: all 0.3s ease;
-}
-
-.el-tag:hover {
-  background-color: #3182ce;
-  border-color: #3182ce;
-  color: white;
-  transform: translateY(-3px);
-}
-
 .base-info {
   color: var(--light-text);
   line-height: 2;
@@ -399,52 +383,9 @@ const goToBooking = () => {
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.text-gray-500 {
-  color: #a0aec0;
-}
 /* 标签页样式 */
 .tabs {
   margin-bottom: 30px;
-}
-
-.el-tabs {
-  background: var(--secondary-color);
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-}
-
-.el-tabs__header {
-  border-bottom: none;
-}
-
-.el-tabs__item {
-  color: var(--light-text);
-  font-size: 18px;
-  font-weight: 500;
-  padding: 15px 25px;
-  transition: all 0.3s ease;
-}
-
-.el-tabs__item.is-active {
-  color: var(--accent-color);
-  position: relative;
-  font-weight: 600;
-}
-
-.el-tabs__item.is-active::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40%;
-  height: 3px;
-  background: var(--accent-color);
-  border-radius: 3px;
-}
-
-.el-tabs__item:hover {
-  color: #4a5568;
 }
 
 .tab-content {

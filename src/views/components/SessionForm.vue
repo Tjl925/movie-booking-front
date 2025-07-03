@@ -83,10 +83,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
-import { getActiveHalls } from '@/api/hall';
-import { createSession, updateSession, checkSessionConflict } from '@/api/session';
+import {computed, onMounted, reactive, ref, watch} from 'vue';
+import {ElMessage} from 'element-plus';
+import {getActiveHalls} from '@/api/hall';
+import {checkSessionConflict, createSession, updateSession} from '@/api/session';
 import dayjs from 'dayjs';
 
 const props = defineProps({

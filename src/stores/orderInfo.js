@@ -20,17 +20,6 @@ export const useOrderStore = defineStore('order', () => {
         seats.value = seatsInfo // 直接赋值而不是push
     }
 
-    // 获取座位信息
-    // const fetchSeatsInfo = async (sessionId) => {
-    //     try {
-    //         loading.value = true
-    //         const res = await getSeatsInfo(sessionId)
-    //         seats.value = res.data
-    //     } finally {
-    //         loading.value = false
-    //     }
-    // }
-
     // 清空订单信息
     const clearOrder = () => {
         filmInfo.value = null
