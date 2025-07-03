@@ -178,7 +178,7 @@ import TopNav from './components/TopNav.vue';
 import { useRouter } from "vue-router";
 import {getShowingMoives, getUpcomingMovies} from "@/api/user"
 import {computed, onMounted, ref} from "vue";
-import {getTop10Movies} from "@/api/user"
+import {getTop5Movies} from "@/api/user"
 import {getBestBoxOfficeMovies, getMovieRecommendation} from "@/api/movie";
 import {useUserInfoStore} from "@/stores/userInfo";
 const movies = ref([])
@@ -201,7 +201,7 @@ const getMovies = async () => {
 }
 
 const gettop10Movies = async () => {
-  getTop10Movies().then(res=>{
+  getTop5Movies().then(res=>{
     top10Movies.value=res.data;
   })
 }
