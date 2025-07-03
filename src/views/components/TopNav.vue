@@ -268,7 +268,6 @@ const handleGetCode = () => {
     return
   }
   // 模拟发送验证码，实际需调接口
-  updateDTO.value.email = updateDTO.value.email;
   sendVerificationCode(updateDTO.value).then((res) => {
     console.log(res)
     if (res.status) {
