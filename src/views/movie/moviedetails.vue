@@ -64,6 +64,11 @@
           <i class="el-icon-ticket" /> 特惠购票
         </el-button>
       </div>
+      <el-breadcrumb :separator-icon="ArrowRight" class="transparent-breadcrumb">
+        <el-breadcrumb-item :to="{ path: '/Home' }">猫眼电影</el-breadcrumb-item>
+        <el-breadcrumb-item :to="{ path: '/MovieList' }">电影</el-breadcrumb-item>
+        <el-breadcrumb-item>{{movie.title}}</el-breadcrumb-item>
+      </el-breadcrumb>
       <!-- 标签页导航（优化样式） -->
       <el-tabs v-model="activeTab" class="tabs" type="card">
         <el-tab-pane label="介绍" name="intro">
@@ -120,6 +125,7 @@ import TopNav from "@/views/components/TopNav.vue";
 import {getMovieById,getMovieRecommendations} from "@/api/movie"
 import { VideoPlayer } from '@videojs-player/vue';
 import 'video.js/dist/video-js.css';
+import {ArrowRight} from "@element-plus/icons-vue";
 // 接收路由参数
 const route = useRoute();
 const router = useRouter();
@@ -663,5 +669,42 @@ h3::after {
     font-size: 18px;
     padding: 12px 25px;
   }
+}
+.transparent-breadcrumb {
+  margin: 20px 0;
+  padding: 0;
+  background: transparent !important;
+}
+
+.transparent-breadcrumb :deep(.el-breadcrumb__item) {
+  font-size: 15px;
+}
+
+/* 可点击项的样式 */
+.transparent-breadcrumb :deep(.el-breadcrumb__item:not(:last-child) .el-breadcrumb__inner) {
+  color: #666;
+  font-weight: 500;
+  transition: all 0.2s;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.transparent-breadcrumb :deep(.el-breadcrumb__item:not(:last-child) .el-breadcrumb__inner:hover) {
+  color: #e53e3e;
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* 不可点击的最后一项样式 */
+.transparent-breadcrumb :deep(.el-breadcrumb__item:last-child .el-breadcrumb__inner) {
+  color: #e53e3e;
+  font-weight: 600;
+  padding: 5px 8px;
+  cursor: default;
+}
+
+.transparent-breadcrumb :deep(.el-breadcrumb__separator) {
+  color: #ccc;
+  margin: 0 6px;
 }
 </style>

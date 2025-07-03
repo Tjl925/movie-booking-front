@@ -3,7 +3,7 @@ import {ref, watch} from 'vue';
 import { ArrowDown } from '@element-plus/icons-vue';
 import {useRoute, useRouter} from 'vue-router';
 import { ElMessage } from "element-plus";
-import {register, updateUserProfile, uploadAvatar, changePassword} from "@/api/user";
+import {register, updateUserProfile, uploadAvatar, changePassword,sendVerificationCode,verifyCode,validate} from "@/api/user";
 import { useUserInfoStore } from '@/stores/userInfo';
 import { onBeforeUnmount } from 'vue';
 
@@ -39,6 +39,13 @@ const getPreviewUrl = (file) => {
 };
 // 组件卸载时释放所有预览URL，避免内存泄漏
 onBeforeUnmount(() => {
+  // 清除倒计时
+  if (countdownTimer.value) {
+    clearTimeout(countdownTimer.value);
+    countdownTimer.value = null;
+  }
+
+  // 清理预览URL
   previewUrls.value.forEach(url => URL.revokeObjectURL(url));
   previewUrls.value = [];
 });
@@ -90,7 +97,6 @@ const handleCommand = (command) => {
     router.push('/Login');
   } else if (command === 'register') {
     showRegister();
-    add();
   } else if (command === 'logout') {
     userInfoStore.removeUserInfo(); // 清除用户信息
     ElMessage.success('已退出登录');
@@ -106,6 +112,16 @@ const handleCommand = (command) => {
 
 // 5. 注册相关
 const dialogVisible = ref(false);
+const countdown = ref(0);
+const messageCodeVis = ref(false)
+const isCountingDown = ref(false);
+const codeSent = ref(false);
+const registerLoading = ref(false);
+const countdownTimer = ref(null);
+const emailRequestDTO=ref({
+  email:'',
+  code:''
+})
 const registerDTO = ref({
   username: "",
   password: "",
@@ -116,32 +132,124 @@ const registerDTO = ref({
 const showRegister = () => {
   dialogVisible.value = true;
 };
-const add = () => {
-  register(registerDTO.value).then(res => {
+const countDown = ref(0)
+let timer = null
+// 发送验证码
+const handleSendCode = async () => {
+  if (isCountingDown.value) return;
+
+  emailRequestDTO.value.email = registerDTO.value.email;
+  emailRequestDTO.value.code = null;
+
+  if (!registerDTO.value.email) {
+    ElMessage.warning('请输入邮箱地址');
+    return;
+  }
+
+  registerLoading.value = true;
+
+  // 直接 await 并检查结果
+  const validationResult = await validate(registerDTO.value);
+  if (validationResult.data !== "true") {
+    ElMessage.error(validationResult.data);
+    registerLoading.value = false; // 记得在失败时也关闭 loading
+    return; // 这里会直接退出函数
+  }
+
+  try {
+    const res = await sendVerificationCode(emailRequestDTO.value);
+    console.log('验证码发送响应:', res);
+
+    if (res.status) {
+      await ElMessage.success(res.message || '验证码发送成功');
+      countDown.value = 60
+      timer = setInterval(() => {
+        countDown.value--
+        if (countDown.value <= 0) {
+          clearInterval(timer)
+        }
+      }, 1000)
+    } else {
+      ElMessage.error(res.message || '发送失败，请稍后重试');
+    }
+  } catch (error) {
+    console.error('验证码发送错误:', error);
+    const errorMsg = error.response?.data?.message || '验证码发送失败，请稍后再试';
+    ElMessage.error(errorMsg);
+  } finally {
+    registerLoading.value = false;
+  }
+};
+
+const add = async () => {
+  console.log('开始验证');
+  try {
+    // 验证验证码
+    const isValid = await verifyCode(emailRequestDTO.value);
+    console.log(isValid);
+
+    if (!isValid) {
+      ElMessage.error('验证码错误或已过期');
+      return;
+    }
+
+    // 验证密码是否匹配
+    if (registerDTO.value.password !== registerDTO.value.confirmPassword) {
+      ElMessage.error('两次输入的密码不一致');
+      return;
+    }
+
+    // 执行注册
+    const res = await register(registerDTO.value);
     console.log(res);
+
     if (res.status) {
       userInfoStore.setUserInfo({
         ...res.data.userInfo,
         token: res.data.token
-      })
+      });
       ElMessage.success('注册成功啦！');
       dialogVisible.value = false;
     } else {
       ElMessage.warning('注册失败！');
     }
-  });
+  } catch (error) {
+    ElMessage.error('注册过程中出错: ' + error.message);
+  }
 };
+// 重置表单
+const resetForm = () => {
+  registerDTO.value = {
+    username: "",
+    password: "",
+    confirmPassword: "",
+    email: "",
+    phone: ""
+  };
+  emailRequestDTO.value.code = "";
+  emailRequestDTO.value.email = "";
+  codeSent.value = false;
 
+  // 清理倒计时
+  if (countdownTimer.value) {
+    clearTimeout(countdownTimer.value);
+    countdownTimer.value = null;
+  }
+
+  isCountingDown.value = false;
+  registerLoading.value = false;
+};
 // 6. 用户信息修改相关
 const updateDialogVisible = ref(false);
 const updateDTO = ref({
   username: "",
   email: "",
   phone: "",
-  avatar: ""
+  avatar: "",
+  code:""
 });
 const avatarFile = ref(null);
-
+// 表单数据
 const showUpdate = () => {
   updateDTO.value = {
     username: "",
@@ -151,6 +259,33 @@ const showUpdate = () => {
   };
   updateDialogVisible.value = true;
 };
+
+const handleGetCode = () => {
+  // 先简单校验邮箱格式
+  const emailReg = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+  if (!emailReg.test(updateDTO.value.email)) {
+    ElMessage.error('请输入正确的邮箱格式')
+    return
+  }
+  // 模拟发送验证码，实际需调接口
+  updateDTO.value.email = updateDTO.value.email;
+  sendVerificationCode(updateDTO.value).then((res) => {
+    console.log(res)
+    if (res.status) {
+      ElMessage.success('验证码已发送至邮箱，请查收~')
+      // 启动倒计时
+      countDown.value = 60
+      timer = setInterval(() => {
+        countDown.value--
+        if (countDown.value <= 0) {
+          clearInterval(timer)
+        }
+      }, 1000)
+    }else{
+      ElMessage.error(res.message || '发送失败，请稍后重试');
+    }
+  })
+}
 
 const update = async () => {
   try {
@@ -169,7 +304,8 @@ const update = async () => {
       username: updateDTO.value.username || undefined,
       email: updateDTO.value.email || undefined,
       phone: updateDTO.value.phone || undefined,
-      avatar: avatarUrl || undefined
+      avatar: avatarUrl || undefined,
+      code:updateDTO.value.code||undefined,
     };
 
     // 移除undefined字段
@@ -345,28 +481,53 @@ const handlePasswordUpdate = async () => {
       v-model="dialogVisible"
       title="注册新用户"
       width="500"
+      @closed="resetForm"
   >
-    <el-form :model="registerDTO" label-width="auto" style="max-width: 600px">
-      <el-form-item label="用户名">
+    <el-form :model="registerDTO" label-width="auto" style="max-width: 600px"
+             :close-on-click-modal="false"
+             :close-on-press-escape="false" >
+      <el-form-item label="用户名" prop="username">
         <el-input v-model="registerDTO.username" autocomplete="off" />
       </el-form-item>
-      <el-form-item label="密码">
-        <el-input v-model="registerDTO.password" type="password" autocomplete="off" />
+      <el-form-item label="密码" prop="password">
+        <el-input v-model="registerDTO.password" type="password" autocomplete="off" show-password />
       </el-form-item>
-      <el-form-item label="确认密码">
-        <el-input v-model="registerDTO.confirmPassword" type="password" autocomplete="off" />
+      <el-form-item label="确认密码" prop="confirmPassword">
+        <el-input v-model="registerDTO.confirmPassword" type="password" autocomplete="off" show-password />
       </el-form-item>
-      <el-form-item label="邮箱">
-        <el-input v-model="registerDTO.email" autocomplete="off" />
-      </el-form-item>
-      <el-form-item label="电话号码">
+      <el-form-item label="电话号码" prop="phone">
         <el-input v-model="registerDTO.phone" autocomplete="off" />
+      </el-form-item>
+      <el-form-item label="邮箱" prop="email" required>
+        <div style="display: flex; gap: 10px; align-items: center">
+          <el-input v-model="registerDTO.email" autocomplete="off" placeholder="请输入邮箱地址" />
+          <div v-if="messageCodeVis" class="second-text">{{countdown}}秒后重新获取</div>
+          <el-button
+              type="primary"
+              @click="handleSendCode"
+              :disabled="countDown > 0|| !registerDTO.email"
+              style="width: 120px"
+          >
+            {{ countDown > 0 ? `${countDown}s后重试` : '获取验证码' }}
+          </el-button>
+        </div>
+        <div v-if="codeSent" style="font-size: 12px; color: #67c23a; margin-top: 5px">
+          验证码已发送至 {{ maskEmail(registerDTO.value.email) }}
+        </div>
+      </el-form-item>
+      <el-form-item label="验证码" prop="verificationCode" required>
+        <el-input
+            v-model="emailRequestDTO.code"
+            placeholder="请输入6位验证码"
+            maxlength="6"
+            show-word-limit
+        />
       </el-form-item>
     </el-form>
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="add">提交</el-button>
+        <el-button type="primary" @click="add()" :loading="registerLoading" :disabled>注册</el-button>
       </div>
     </template>
   </el-dialog>
@@ -406,6 +567,26 @@ const handlePasswordUpdate = async () => {
             </el-form-item>
             <el-form-item label="新邮箱">
               <el-input v-model="updateDTO.email" placeholder="输入新邮箱" />
+            </el-form-item>
+            <el-form-item label="验证码" prop="code">
+              <div style="display: flex; gap: 10px; align-items: center">
+                <el-input
+                    v-model="updateDTO.code"
+                    placeholder="请输入验证码"
+                    clearable
+                    :maxlength="6"
+                    style="flex: 1"
+                />
+                <el-button
+                    type="primary"
+                    @click="handleGetCode"
+                    :disabled="countDown > 0"
+                    style="width: 100px"
+
+                >
+                  {{ countDown > 0 ? `${countDown}s后重试` : '获取验证码' }}
+                </el-button>
+              </div>
             </el-form-item>
             <el-form-item label="新手机号">
               <el-input v-model="updateDTO.phone" placeholder="输入新手机号" />
@@ -609,7 +790,10 @@ const handlePasswordUpdate = async () => {
   border-radius: 4px;
   padding: 20px;
 }
-
+.disabled-button {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 .update-info {
   padding: 20px;}
 </style>

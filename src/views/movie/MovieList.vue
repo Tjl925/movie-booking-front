@@ -11,7 +11,6 @@
           <el-tab-pane label="正在热映" name="nowShowing"></el-tab-pane>
           <el-tab-pane label="即将上映" name="upComing"></el-tab-pane>
         </el-tabs>
-        <el-button type="text" size="small">查看全部 ></el-button>
       </div>
 
       <!-- 筛选区域 -->

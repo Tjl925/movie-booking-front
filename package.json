@@ -13,10 +13,15 @@
     "@vueup/vue-quill": "^1.2.0",
     "axios": "^1.6.0",
     "element-plus": "^2.4.2",
+    "particles.vue3": "^2.12.0",
     "pinia": "^2.3.1",
     "pinia-persistedstate-plugin": "^0.1.0",
+    "tsparticles": "^3.8.1",
+    "tsparticles-engine": "^2.12.0",
+    "tsparticles-slim": "^2.12.0",
     "vue": "^3.3.4",
-    "vue-router": "^4.2.5"
+    "vue-router": "^4.2.5",
+    "vue3-particles": "^2.12.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.4.0",
