@@ -6,6 +6,8 @@ import superadminPage from "@/views/superadmin/superadminPage.vue";
 import { useUserInfoStore } from '@/stores/userInfo';
 import { ElMessage } from 'element-plus';
 import UserManagement from "@/views/user/UserManagement.vue";
+import UserRole from "@/views/user/UserRole.vue";
+import Statistics from "@/views/Statistics.vue";
 import SearchList from "@/views/SearchList.vue";
 import movieDetails from "@/views/movie/moviedetails.vue";
 import MovieInfo from "@/views/movie/MovieInfo.vue";
@@ -33,7 +35,9 @@ const routes = [
   {path: '/Login', component: Login},
   {path: '/admin', component: adminPage},
   {path: '/superadmin', component: superadminPage},
+  {path: '/statistics', component: Statistics},
   {path: '/user', component: UserManagement},
+  {path: '/user-role', component: UserRole},
   {path: '/movie', component: MovieInfo},
   {path: '/movie-info/:id', component: movieDetails},
   {path: '/MovieList', component: MovieList},
@@ -119,8 +123,15 @@ router.beforeEach((to, from, next) => {
     return;
   }
 
+  // 用户角色管理页面，只有超级管理员可访问
+  if (to.path === '/user-role' && roleId !== 1) {
+    ElMessage.error('无权访问用户角色管理页面');
+    next(getDefaultRouteByRole(roleId));
+    return;
+  }
+
   // 用户管理相关页面，只有管理员和超级管理员可访问
-  if (to.path.startsWith('/user') && roleId === 3) {
+  if (to.path.startsWith('/user') && to.path !== '/user-role' && roleId === 3) {
     ElMessage.error('无权访问用户管理页面');
     next(getDefaultRouteByRole(roleId));
     return;

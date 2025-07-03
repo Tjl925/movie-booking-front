@@ -33,6 +33,12 @@ export const updateUserGroup = (id, data) => request.put(`/api/user-groups/${id}
 // 删除用户分组
 export const deleteUserGroup = (id) => request.delete(`/api/user-groups/${id}`);
 
+// 获取所有角色列表
+export const getAllRoles = () => request.get('/api/roles');
+
+// 根据ID获取角色及其权限
+export const getRoleById = (id) => request.get(`/api/roles/${id}`);
+
 // 将用户添加到分组
 export const addUserToGroup = (groupId, userId) => request.post(`/api/user-groups/${groupId}/users/${userId}`);
 

@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue';
 import {getAllOrders, deleteOrder, getByOrderId, getBySeatId, refundOrder} from '@/api/orders';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
+import dayjs from "dayjs";
 
 // 表格数据
 const tableData = ref([]);
@@ -102,16 +103,8 @@ const handleSizeChange = (val) => {
 
 // 格式化日期时间
 const formatDateTime = (dateTimeStr) => {
-  if (!dateTimeStr) return '-';
-  const date = new Date(dateTimeStr);
-  return date.toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
+  if (!dateTimeStr) return '';
+  return dayjs(dateTimeStr).format('YYYY-MM-DD HH:mm');
 };
 
 // 格式化订单状态
@@ -325,7 +318,7 @@ onMounted(() => {
               type="primary"
               size="small"
               @click="handleRefund(scope.row)"
-              :disabled="scope.row.status !== 'PAID'"
+              :disabled="scope.row.status !== 'PAID' && scope.row.status !== 'COMPLETED'"
             >
               退款
             </el-button>

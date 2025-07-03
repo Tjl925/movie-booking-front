@@ -45,6 +45,7 @@ const fetchUserOrders = async () => {
       pagination.value.pageSize, 
       userId.value
     );
+    console.log('获取订单列表响应:', response);
     if (response.status) {
       tableData.value = response.data.records;
       console.log(response.data.records);
@@ -117,7 +118,8 @@ const formatStatus = (status) => {
     'PENDING': '待支付',
     'PAID': '已支付',
     'CANCELLED': '已取消',
-    'REFUNDED': '已退款'
+    'REFUNDED': '已退款',
+    'COMPLETED': '已完成',
   };
   return statusMap[status] || status;
 };
@@ -128,7 +130,8 @@ const getStatusType = (status) => {
     'PENDING': 'warning',
     'PAID': 'success',
     'CANCELLED': 'info',
-    'REFUNDED': 'danger'
+    'REFUNDED': 'danger',
+    'COMPLETED': 'success',
   };
   return typeMap[status] || '';
 };
@@ -283,7 +286,6 @@ const handleRating = async (order) => {
               'onUpdate:modelValue': (val) => ratingValue.value = val,
               colors: ['#99A9BF', '#F7BA2A', '#FF9900'],
               voidColor: '#C0C4CC',
-              showText: true,
               textColor: '#FF9900',
               max:10,
               textTemplate: '{value} 分'
@@ -308,8 +310,8 @@ const handleRating = async (order) => {
             ratingDTO.value.movieId=order.session?.movie?.id
             ratingDTO.value.rating=ratingValue.value
             const res = await ratingMovies(ratingDTO.value);
-            if (res.success) {
-              ElMessage.success(`感谢您的 ${ratingValue.value} 星评价！`);
+            if (res.status) {
+              ElMessage.success(`感谢您的评分！`);
               fetchUserOrders();
             }
           } finally {
@@ -336,7 +338,7 @@ onMounted(() => {
 <template>
   <div class="user-orders">
     <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h2>我的订单</h2>
+      <h2 style="font-size: 30px">我的订单</h2>
       <el-button
           type="primary"
           size="default"
@@ -487,7 +489,7 @@ onMounted(() => {
               立即支付
             </el-button>
             <el-button
-                type="success"
+                type="primary"
                 :disabled="order.status !== 'COMPLETED' || order.isRated"
                 @click="handleRating(order)"
                 class="action-btn"

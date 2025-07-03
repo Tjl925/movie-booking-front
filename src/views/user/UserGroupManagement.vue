@@ -10,6 +10,7 @@ import {
   getUsersInGroup,
   removeUserFromGroup
 } from '@/api/admin';
+import dayjs from "dayjs";
 
 // 用户分组相关数据和方法
 const userGroups = ref([]);
@@ -190,6 +191,11 @@ const handleRemoveUserFromGroup = async (userId) => {
   }
 };
 
+const formatDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return '';
+  return dayjs(dateTimeStr).format('YYYY-MM-DD HH:mm');
+};
+
 // 组件挂载时加载分组列表
 onMounted(() => {
   loadUserGroups();
@@ -235,7 +241,11 @@ onMounted(() => {
           {{ scope.row.userCount || 0 }}
         </template>
       </el-table-column>
-      <el-table-column prop="createdAt" label="创建时间" width="180"/>
+      <el-table-column prop="createdAt" label="创建时间" width="180">
+        <template #default="scope">
+          {{ formatDateTime(scope.row.createdAt) }}
+        </template>
+      </el-table-column>
       <el-table-column label="操作" fixed="right" width="250">
         <template #default="scope">
           <el-button
@@ -313,7 +323,7 @@ onMounted(() => {
     <el-dialog
         :title="`分组用户 - ${selectedGroup?.name}`"
         v-model="groupUsersDialogVisible"
-        width="800px"
+        width="900px"
     >
       <el-table
           :data="groupUsersList"
@@ -371,6 +381,11 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.header span {
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .action-buttons {

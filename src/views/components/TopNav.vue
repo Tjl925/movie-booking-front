@@ -393,7 +393,7 @@ const handlePasswordUpdate = async () => {
   <div class="top-nav">
     <div class="nav-container">
       <!-- Logo 区域 -->
-      <div class="logo-box"@click="goToHome">
+      <div class="logo-box" @click="goToHome">
         <img src="@/assets/logo.png" alt="logo" class="logo-img" />
         <span class="logo-text">猫眼电影</span>
       </div>
@@ -411,8 +411,8 @@ const handlePasswordUpdate = async () => {
           class="no-ellipsis-menu"
           @select="handleMenuClick"
       >
-        <el-menu-item index="1">首页</el-menu-item>
-        <el-menu-item index="2">电影</el-menu-item>
+        <el-menu-item index="1" style="font-size: 18px">首页</el-menu-item>
+        <el-menu-item index="2" style="font-size: 18px">电影</el-menu-item>
       </el-menu>
 
       <!-- 搜索区域 -->
@@ -681,13 +681,14 @@ const handlePasswordUpdate = async () => {
   background-color: #f5f5f5; /* 鼠标悬停时背景颜色变化 */
   border-radius: 4px; /* 添加圆角 */
 }
+
 .logo-img {
   width: 40px;
   height: 40px;
   margin-right: 10px;
 }
 .logo-text {
-  font-size: 20px;
+  font-size: 25px;
   font-weight: bold;
 }
 

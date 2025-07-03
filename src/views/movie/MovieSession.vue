@@ -393,6 +393,17 @@ onMounted(() => {
 
 <style scoped>
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header span {
+  font-size: 18px;
+  font-weight: bold;
+}
+
 .seat-map-container {
   text-align: center;
   padding: 20px;

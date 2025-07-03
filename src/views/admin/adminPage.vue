@@ -9,7 +9,7 @@ import MovieGenre from "../movie/MovieGenre.vue";
 import MovieRegion from "../movie/MovieRegion.vue";
 import MovieSession from "../movie/MovieSession.vue";
 import OrderInfo from "../order/OrderInfo.vue";
-import Home from "../Home.vue";
+import Statistics from "../Statistics.vue";
 
 // 当前激活的菜单项
 const activeMenu = ref('1'); // 默认显示
@@ -29,7 +29,7 @@ const handleMenuClick = (menuIndex) => {
       </div>
       <div class="main-content">
         <div v-if="activeMenu === '1'" class="content-panel">
-          <Home />
+          <Statistics />
         </div>
         <!-- 用户列表内容 -->
         <div v-if="activeMenu === '2-1'" class="content-panel">
@@ -64,11 +64,6 @@ const handleMenuClick = (menuIndex) => {
         <!-- 订单信息内容 -->
         <div v-if="activeMenu === '4'" class="content-panel">
           <order-info />
-        </div>
-
-        <!-- 其他菜单项的内容区域，可以根据需要添加 -->
-        <div v-if="activeMenu === '1'" class="content-panel">
-          <el-empty description="暂未实现该功能，敬请期待" />
         </div>
       </div>
     </div>

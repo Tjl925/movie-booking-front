@@ -287,6 +287,11 @@ onMounted(() => {
   align-items: center;
 }
 
+.header span {
+  font-size: 18px;
+  font-weight: bold;
+}
+
 .pagination-container {
   display: flex;
   justify-content: center;

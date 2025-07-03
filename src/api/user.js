@@ -1,5 +1,4 @@
 import request from "@/utils/request";
-import axios from 'axios'
 export const login = (loginDTO) => request.post('/api/auth/login', loginDTO)
 export const register = (registerDTO) => request.post('/api/auth/register', registerDTO)
 export const getShowingMoives=(current,size)=>request.get('/api/movies/public/showing', {current,size})

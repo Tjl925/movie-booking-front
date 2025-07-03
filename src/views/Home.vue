@@ -65,11 +65,11 @@
 
       </div>
 
-      <!-- 右侧评分最高TOP10区域 -->
+      <!-- 右侧评分最高TOP5区域 -->
       <div class="right-section">
 
         <div v-if="isLoggedIn.valueOf()" class="top-list-container">
-          <h2 class="section-title">猜您喜欢</h2>
+          <h2 class="section-title">猜你喜欢</h2>
           <div class="top5-list">
             <div
                 v-for="(movie, index) in mayLikeMovies"
@@ -106,7 +106,7 @@
           <h2 class="section-title">评分最高</h2>
           <div class="top5-list">
             <div
-                v-for="(movie, index) in top10Movies.slice(0, 5)"
+                v-for="(movie, index) in top5Movies.slice(0, 5)"
                 :key="movie.id"
                 class="top5-item"
                 @mouseenter="hoverIndex = index"
@@ -137,7 +137,7 @@
 
         <!-- 票房最高TOP5 -->
         <div class="top-list-container">
-          <h2 class="section-title">票房最高</h2>
+          <h2 class="section-title">当前票房</h2>
           <div class="top5-list">
             <div
                 v-for="(movie, index) in bestBoxOfficeMovies.slice(0, 5)"
@@ -182,7 +182,7 @@ import {getTop5Movies} from "@/api/user"
 import {getBestBoxOfficeMovies, getMovieRecommendation} from "@/api/movie";
 import {useUserInfoStore} from "@/stores/userInfo";
 const movies = ref([])
-const top10Movies = ref([])
+const top5Movies = ref([])
 const mayLikeMovies = ref([])
 const bestBoxOfficeMovies = ref([])
 const upComingMovies = ref([]); // 即将上映电影
@@ -200,9 +200,9 @@ const getMovies = async () => {
   })
 }
 
-const gettop10Movies = async () => {
+const gettop5Movies = async () => {
   getTop5Movies().then(res=>{
-    top10Movies.value=res.data;
+    top5Movies.value=res.data;
   })
 }
 const getMayLike = async () => {
@@ -241,15 +241,6 @@ const goToDetail = (movieId) => {
     path: `/movie-info/${movieId}`
   });
 };
-// const isLoggedIn=()=>{
-//   const userInfoStore = useUserInfoStore();
-//   console.log('当前用户信息:', userInfoStore);
-//   if (!userInfoStore || !userInfoStore.token)
-//   {
-//       return false;
-//   }
-//   else return true;
-// }
 
 const goToBooking = (movieId) => {
   router.push({
@@ -279,13 +270,13 @@ onMounted(async () => {
   console.log(isLoggedIn.value)
   console.log(userInfoStore)
   await getMayLike();
-  await gettop10Movies();
+  await gettop5Movies();
 });
 </script>
 
 <style scoped>
 .home {
-  padding: 20px;
+  padding: 5px;
 }
 
 .main-content {
@@ -297,7 +288,7 @@ onMounted(async () => {
 
 .left-section {
   flex: 3;
-  margin-right: 30px;
+  margin-right: 50px;
 }
 
 .right-section {
@@ -318,12 +309,14 @@ onMounted(async () => {
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: 25px;
   font-weight: bold;
+  margin-top: 50px;
   margin-bottom: 15px;
   padding-bottom: 10px;
   border-bottom: 2px solid #e0e0e0;
   position: relative;
+  color: #EF4238;
 }
 .section-title::after {
   content: "";
@@ -525,7 +518,7 @@ onMounted(async () => {
 }
 .buy-ticket-btn-booking {
   background-color: red;
-  color: black;
+  color: white;
   border: none;
   border-radius: 4px;
   padding: 6px 12px;

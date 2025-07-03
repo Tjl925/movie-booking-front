@@ -376,6 +376,11 @@ onMounted(() => {
   align-items: center;
 }
 
+.header span {
+  font-size: 18px;
+  font-weight: bold;
+}
+
 .head-container {
   display: flex;
   align-items: center;
@@ -413,20 +418,10 @@ onMounted(() => {
   gap: 5px;
 }
 
-/* 场次列表弹窗样式 */
-.session-list-container {
-  padding: 10px;
-}
-
 .session-list-container h3 {
   margin-top: 0;
   margin-bottom: 15px;
   text-align: center;
-}
-
-.session-table {
-  width: 100%;
-  overflow-x: auto;
 }
 
 .session-table table {
@@ -449,31 +444,5 @@ onMounted(() => {
 
 .session-table tr:hover td {
   background-color: #f5f7fa;
-}
-
-.loading,
-.empty {
-  text-align: center;
-  padding: 20px;
-  color: #909399;
-}
-
-/* 展开行样式 */
-:deep(.el-table__expanded-cell) {
-  padding: 20px !important;
-}
-
-:deep(.el-descriptions__label) {
-  width: 120px;
-  font-weight: bold;
-}
-
-:deep(.el-descriptions__content) {
-  word-break: break-word;
-}
-
-:deep(.el-image) {
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 </style>

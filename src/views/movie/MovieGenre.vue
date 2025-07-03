@@ -288,8 +288,9 @@ onMounted(() => {
   align-items: center;
 }
 
-.button-container {
-  margin-bottom: 15px;
+.header span {
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .pagination-container {

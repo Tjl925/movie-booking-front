@@ -4,8 +4,7 @@ import {Search, Edit, Delete, Warning, Connection} from '@element-plus/icons-vue
 import {ElMessage, ElMessageBox} from 'element-plus';
 import {
   getUserList, 
-  updateUser, 
-  deleteUser, 
+  updateUser,
   updateUserStatus, 
   getGroupsByUser,
   addUserToGroup,
@@ -13,6 +12,7 @@ import {
   getUserGroups
 } from '@/api/admin';
 import {uploadAvatar} from "@/api/user";
+import dayjs from "dayjs";
 
 // 用户管理相关数据和方法
 const searchKeyword = ref('');
@@ -24,6 +24,85 @@ const userList = ref([]);
 const allUsers = ref([]); // 存储所有用户数据，用于全局筛选
 const loading = ref(false);
 const userGroups = ref([]);
+// 多选数据
+const multipleSelection = ref([]);
+
+// 处理表格多选
+const handleSelectionChange = (val) => {
+  multipleSelection.value = val;
+};
+
+// 批量启用用户
+const batchEnableUsers = async () => {
+  if (multipleSelection.value.length === 0) {
+    ElMessage.warning('请先选择用户');
+    return;
+  }
+
+  // 过滤出状态为禁用的用户
+  const disabledUsers = multipleSelection.value.filter(user => user.status === 'INACTIVE' && user.roleId !== 1);
+
+  if (disabledUsers.length === 0) {
+    ElMessage.warning('所选用户中没有禁用状态的用户');
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(`确定要启用选中的 ${disabledUsers.length} 个用户吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+
+    // 批量处理启用操作
+    const promises = disabledUsers.map(user => updateUserStatus(user.id, 'ACTIVE'));
+    await Promise.all(promises);
+
+    ElMessage.success(`成功启用 ${disabledUsers.length} 个用户`);
+    await loadUserList();
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量启用用户失败:', error);
+      ElMessage.error('批量启用用户失败');
+    }
+  }
+};
+
+// 批量禁用用户
+const batchDisableUsers = async () => {
+  if (multipleSelection.value.length === 0) {
+    ElMessage.warning('请先选择用户');
+    return;
+  }
+
+  // 过滤出状态为正常的用户，且不是超级管理员
+  const enabledUsers = multipleSelection.value.filter(user => user.status === 'ACTIVE' && user.roleId !== 1);
+
+  if (enabledUsers.length === 0) {
+    ElMessage.warning('所选用户中没有可禁用的用户或包含超级管理员');
+    return;
+  }
+
+  try {
+    await ElMessageBox.confirm(`确定要禁用选中的 ${enabledUsers.length} 个用户吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    });
+
+    // 批量处理禁用操作
+    const promises = enabledUsers.map(user => updateUserStatus(user.id, 'INACTIVE'));
+    await Promise.all(promises);
+
+    ElMessage.success(`成功禁用 ${enabledUsers.length} 个用户`);
+    await loadUserList();
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('批量禁用用户失败:', error);
+      ElMessage.error('批量禁用用户失败');
+    }
+  }
+};
 
 // 筛选条件
 const roleFilter = ref(''); // 角色筛选
@@ -302,6 +381,11 @@ const saveUserGroups = async () => {
   }
 };
 
+const formatDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return '';
+  return dayjs(dateTimeStr).format('YYYY-MM-DD HH:mm');
+};
+
 // 组件挂载时加载用户列表和分组
 onMounted(() => {
   loadUserList();
@@ -315,7 +399,6 @@ onMounted(() => {
     <template #header>
       <div class="header">
         <span>用户管理</span>
-        <div class="search-box">
         <div class="search-container">
           <el-select v-model="searchType" placeholder="搜索类型" style="width: 150px" @change="handleSearchTypeChange">
             <el-option label="用户名" value="username" />
@@ -343,8 +426,23 @@ onMounted(() => {
           </el-select>
         </div>
       </div>
-      </div>
     </template>
+
+    <!-- 批量操作按钮 -->
+    <div class="batch-actions">
+      <el-button-group>
+        <el-button type="success" @click="batchEnableUsers" :disabled="multipleSelection.length === 0">
+          批量启用
+        </el-button>
+        <el-button type="warning" @click="batchDisableUsers" :disabled="multipleSelection.length === 0">
+          批量禁用
+        </el-button>
+      </el-button-group>
+
+      <span v-if="multipleSelection.length > 0" class="selection-info">
+        已选择 {{ multipleSelection.length }} 个用户
+      </span>
+    </div>
 
     <!-- 用户列表表格 -->
     <div>
@@ -354,6 +452,8 @@ onMounted(() => {
           style="width: 100%"
           v-loading="loading"
           element-loading-text="加载中..."
+          height="450px"
+          @selection-change="handleSelectionChange"
       >
       <el-table-column type="expand">
         <template #default="props">
@@ -381,12 +481,13 @@ onMounted(() => {
             <el-descriptions-item label="邮箱" align="center">{{ props.row.email }}</el-descriptions-item>
             <el-descriptions-item label="手机号" align="center">{{ props.row.phone }}</el-descriptions-item>
             <el-descriptions-item label="状态" align="center">{{ props.row.status }}</el-descriptions-item>
-            <el-descriptions-item label="创建时间" align="center">{{ props.row.createdAt }}</el-descriptions-item>
-            <el-descriptions-item label="上次登录时间" align="center">{{ props.row.lastLogin }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间" align="center">{{ formatDateTime(props.row.createdAt) }}</el-descriptions-item>
+            <el-descriptions-item label="上次登录时间" align="center">{{ formatDateTime(props.row.lastLogin) }}</el-descriptions-item>
             <el-descriptions-item label="登录次数" align="center">{{ props.row.loginCount }}</el-descriptions-item>
           </el-descriptions>
         </template>
       </el-table-column>
+      <el-table-column type="selection" width="60"/>
       <el-table-column prop="id" label="ID" width="80"/>
       <el-table-column prop="username" label="用户名"/>
       <el-table-column prop="email" label="邮箱"/>
@@ -524,7 +625,11 @@ onMounted(() => {
 
 <style scoped>
 .page-container {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
+}
+
+.page-container ::v-deep(.el-card__header) {
+  margin-bottom: -7px;
 }
 
 .header {
@@ -533,14 +638,9 @@ onMounted(() => {
   align-items: center;
 }
 
-.tab-actions {
-  flex: 1;
-  margin: 0 20px;
-}
-
-.search-box {
-  display: flex;
-  align-items: center;
+.header span {
+  font-size: 18px;
+  font-weight: bold;
 }
 
 .search-container {
@@ -549,9 +649,14 @@ onMounted(() => {
   gap: 10px;
 }
 
-.action-buttons {
+.batch-actions {
+  margin-bottom: 10px;
   display: flex;
-  gap: 10px;
+  align-items: center;
+}
+
+.selection-info{
+  margin-left: 10px;
 }
 
 .pagination-container {
@@ -560,13 +665,4 @@ onMounted(() => {
   justify-content: flex-end;
 }
 
-.el-checkbox-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-}
-
-.el-checkbox {
-  margin-right: 0 !important;
-}
 </style>
