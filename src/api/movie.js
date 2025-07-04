@@ -76,3 +76,8 @@ export const getShowingMoives=(current,size)=>request.get('/api/movies/public/sh
 export const getUpcomingMovies=(current,size)=>request.get('/api/movies/public/coming', {current,size})
 export const getTop5Movies=()=>request.get('/api/movies/public/top5', {})
 export const getSearchList = (current,size,key) => request.get('/api/movies/public/search', {params:current, size, key})
+
+export const getAllMovies = (status) =>
+    request.get('/api/movies/public/all', {
+      params: { status }  // 关键：使用 `params` 而不是直接传对象
+    })

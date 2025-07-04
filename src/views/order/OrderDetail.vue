@@ -38,8 +38,7 @@
       <h3>选择支付方式</h3>
       <el-radio-group v-model="paymentMethod">
         <el-radio label="ALIPAY">
-          <img src="/src/assets/alipay.png" alt="支付宝" class="payment-icon" />
-          支付宝支付
+          <img src="/src/assets/alipay.png" class="payment-icon" />
         </el-radio>
       </el-radio-group>
     </div>
@@ -287,8 +286,8 @@ onBeforeUnmount(() => {
 }
 
 .payment-icon {
-  width: 24px;
-  height: 24px;
+  width: 60px;
+  height: 30px;
   margin-right: 5px;
   vertical-align: middle;
 }

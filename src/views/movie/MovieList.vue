@@ -19,7 +19,8 @@
         <div class="filter-row">
           <span class="filter-label">类型:</span>
           <el-radio-group v-model="selectedType" size="small">
-            <el-radio-button v-for="type in movieTypes" :key="type.id" :label="type.id">{{ type.name }}</el-radio-button>
+            <el-radio-button label="all">全部</el-radio-button>
+            <el-radio-button v-for="type in movieTypes" :key="type.id" :label="type.name">{{ type.name }}</el-radio-button>
           </el-radio-group>
         </div>
 
@@ -27,9 +28,11 @@
         <div class="filter-row">
           <span class="filter-label">区域:</span>
           <el-radio-group v-model="selectedRegion" size="small">
-            <el-radio-button v-for="region in movieRegions" :key="region.id" :label="region.id">{{ region.name }}</el-radio-button>
+            <el-radio-button label="all">全部</el-radio-button>
+            <el-radio-button v-for="region in movieRegions" :key="region.id" :label="region.name">{{ region.name }}</el-radio-button>
           </el-radio-group>
         </div>
+
 
         <!-- 年代筛选 -->
         <div class="filter-row">
@@ -93,7 +96,7 @@
             @size-change="handleSizeChange"
             @current-change="handleCurrentChange"
             :current-page="Page.current"
-            :page-sizes="[4,8, 12, 18]"
+            :page-sizes="[4, 9, 12, 18]"
             :page-size="Page.size"
             layout="total, sizes, prev, pager, next, jumper"
             :total="totalMovies"
@@ -121,9 +124,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import TopNav from '../components/TopNav.vue';
-import {getShowingMoives, getUpcomingMovies} from "@/api/movie"
+import {getAllGenres, getAllMovies, getAllRegions} from "@/api/movie"
 import router from "@/router";
 import {useRoute} from "vue-router";
 const activeTab = ref('nowShowing');
@@ -134,7 +137,7 @@ const selectedYear = ref('all');
 const sortType = ref('hot');
 const Page = ref({
   current:1,
-  size:8,
+  size:9,
 })
 // 分页控制
 const totalMovies = ref(0);
@@ -146,18 +149,28 @@ const currentMovies = computed(() => {
   return activeTab.value === 'nowShowing' ? nowShowingMovies.value : upComingMovies.value;
 });
 const getMovies = async () => {
-  if (activeTab.value === 'nowShowing') {
-    getShowingMoives(Page.value.current, Page.value.size).then(res => {
-      nowShowingMovies.value = processMovieData(res.data.records);
-      totalMovies.value = res.data.total || 0;
-    });
-  } else {
-    // 这里调用你的即将上映电影API
-    getUpcomingMovies(Page.value.current, Page.value.size).then(res => {
-      upComingMovies.value = processMovieData(res.data.records);
-      totalMovies.value = res.data.total || 0;
-    });
+  try {
+    const status = activeTab.value === 'nowShowing' ? 'NOW_SHOWING' : 'UPCOMING';
+    const res = await getAllMovies(status);
+
+    console.log('API原始数据:', res); // 检查数据结构
+    console.log('records是否存在:', res.data);
+
+    const processed = processMovieData(res.data || []);
+    console.log('处理后数据:', processed); // 检查处理后的数据
+
+    if (activeTab.value === 'nowShowing') {
+      nowShowingMovies.value = processed;
+    } else {
+      upComingMovies.value = processed;
+    }
+
+    totalMovies.value = processed.length;
+  } catch (error) {
+    console.error('获取电影失败:', error);
+    ElMessage.error('加载电影列表失败');
   }
+
 };
 
 const processMovieData = (records) => {
@@ -182,28 +195,32 @@ const handleTabChange = () => {
   getMovies();
 };
 // 电影类型筛选选项
-const movieTypes = [
-  { id: 'all', name: '全部' },
-  { id: '动作', name: '动作' },
-  { id: '喜剧', name: '喜剧' },
-  { id: '爱情', name: '爱情' },
-  { id: '科幻', name: '科幻' },
-  { id: '悬疑', name: '悬疑' },
-  { id: '动画', name: '动画' },
-  { id: '剧情', name: '剧情' },
-  { id: '音乐', name: '音乐' }
-];
-
+const movieTypes = ref([]); // 替换原来的静态数据
+// 获取电影类型
+const fetchGenreList = async () => {
+  try {
+    const response = await getAllGenres();
+    movieTypes.value = response.data.map(genre => ({
+      id: genre.id,
+      name: genre.name
+    }));
+  } catch (error) {
+    console.error('获取类型列表失败:', error);
+    ElMessage.error('获取类型列表失败');
+  }
+};
 // 电影区域筛选选项
-const movieRegions = [
-  { id: 'all', name: '全部' },
-  { id: 'china', name: '大陆' },
-  { id: 'us', name: '美国' },
-  { id: 'japan', name: '日本' },
-  { id: 'korea', name: '韩国' },
-  { id: 'uk', name: '英国' },
-  { id: 'hongkong', name: '香港' }
-];
+const movieRegions=ref([])
+// 获取区域列表
+const fetchRegionList = async () => {
+  try {
+    const response = await getAllRegions();
+    movieRegions.value = response.data;
+  } catch (error) {
+    console.error('获取区域列表失败:', error);
+    ElMessage.error('获取区域列表失败');
+  }
+};
 
 // 电影年代筛选选项
 const movieYears = [
@@ -216,61 +233,46 @@ const movieYears = [
 
 // 获取筛选后的电影列表
 const filteredMovies = computed(() => {
-  let result = currentMovies.value;
+  try {
+    // 确保总是返回数组
+    const sourceData = [...(currentMovies.value || [])];
+    console.log('源数据:', sourceData); // 调试
 
-  // 类型筛选
-  if (selectedType.value !== 'all') {
-    result = result.filter(movie =>
-        movie.tags.some(tag => tag.includes(selectedType.value)))
-  }
+    // 筛选逻辑
+    let result = sourceData.filter(movie => {
+      const typePass = selectedType.value === 'all' ||
+          movie.tags?.includes(selectedType.value);
+      const regionPass = selectedRegion.value === 'all' ||
+          movie.region === selectedRegion.value;
+      const yearPass = selectedYear.value === 'all' ||
+          (selectedYear.value === 'earlier' ?
+              movie.year < 2023 :
+              movie.year === parseInt(selectedYear.value));
 
-  // 区域筛选
-  if (selectedRegion.value !== 'all') {
-    const regionMap = {
-      'china': '中国',
-      'us': '美国',
-      'japan': '日本',
-      'korea': '韩国',
-      'uk': '英国',
-      'hongkong': '香港'
-    };
-    result = result.filter(movie =>
-        movie.region === regionMap[selectedRegion.value])
-  }
+      return typePass && regionPass && yearPass;
+    });
+    console.log('筛选后数据:', result); // 调试
 
-  // 年代筛选
-  if (selectedYear.value !== 'all') {
-    if (selectedYear.value === 'earlier') {
-      result = result.filter(movie => movie.year < 2023);
-    } else {
-      result = result.filter(movie => movie.year === parseInt(selectedYear.value));
+    // 排序
+    switch(sortType.value) {
+      case 'hot': result.sort((a,b) => (b.viewCount||0)-(a.viewCount||0)); break;
+      case 'time': result.sort((a,b) => (b.year||0)-(a.year||0)); break;
+      case 'rating': result.sort((a,b) => (b.rating||0)-(a.rating||0)); break;
     }
-  }
 
-  // 排序逻辑
-  switch (sortType.value) {
-    case 'hot':
-      result.sort((a, b) => (b.viewCount || 0) - (a.viewCount || 0));
-      break;
-    case 'time':
-      result.sort((a, b) => (b.year || 0) - (a.year || 0));
-      break;
-    case 'rating':
-      result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      break;
-  }
+    // 分页
+    totalMovies.value = result.length;
+    const start = (Page.value.current - 1) * Page.value.size;
+    const end = Math.min(start + Page.value.size, result.length);
+    const pageData = result.slice(start, end);
 
-  // 分页逻辑
-  const start = (Page.value.current - 1) * Page.value.size;
-  const end = start + Page.value.size;
-  return result.slice(start, end);
+    console.log('分页结果:', {start, end, pageData}); // 调试
+    return pageData;
+  } catch (error) {
+    console.error('筛选出错:', error);
+    return [];
+  }
 });
-// 处理分页大小变化
-const handleSizeChange = (newSize) => {
-  Page.value.size = newSize;
-  Page.value.current = 1;
-  getMovies();
-};
 
 const goToDetail = (movieId) => {
   router.push({
@@ -282,21 +284,30 @@ const goToBooking = (movieId) => {
     path: `/chooseSessions/${movieId}`
   });
 };
-// 处理当前页变化
+
+const handleSizeChange = (newSize) => {
+  Page.value.size = newSize;
+  Page.value.current = 1; // 改变每页大小时回到第一页
+};
+
 const handleCurrentChange = (newPage) => {
   Page.value.current = newPage;
-  getMovies();
 };
+watch([selectedType, selectedRegion, selectedYear, sortType], () => {
+  Page.value.current = 1;
+});
 
 // 初始化数据
 onMounted(() => {
-
   const route = useRoute();
   if (route.query.tab === 'upComing') {
     activeTab.value = 'upComing';
   }
+  fetchRegionList();
+  fetchGenreList(); // 获取电影类型
   getMovies();
 });
+
 </script>
 
 <style scoped>
