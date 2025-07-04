@@ -140,12 +140,12 @@ import {computed, onMounted, ref} from 'vue'
 import {useRoute, useRouter} from 'vue-router'
 import {ElButton, ElMessage, ElOption, ElRate, ElSelect, ElTag} from 'element-plus'
 import dayjs from 'dayjs'
-import {getSessionInfosByMovieId} from "@/api/user";
+import { getUserById } from "@/api/user";
 import TopNav from "@/views/components/TopNav.vue";
-import {useSessionStore} from '@/stores/session'
-import {getMovieById} from "@/api/movie";
+import { useSessionStore } from '@/stores/session'
+import { getMovieById } from "@/api/movie";
+import { getSessionInfosByMovieId } from "@/api/session";
 import {useUserInfoStore} from "@/stores/userInfo";
-import {getUserById} from "@/api/orders";
 
 const route = useRoute()
 const router = useRouter()

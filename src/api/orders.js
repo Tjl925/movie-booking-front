@@ -1,9 +1,7 @@
 import request from "@/utils/request";
 
 export const createOrder = (orderCreationDTO, uid) => request.post('/api/orders', orderCreationDTO, { params: { uid } })
-export const getBySeatId = (id) => request.get(`/api/seats/${id}`);
-export const getByOrderId = (id) => request.get(`/api/orders/${id}`);
-export const getUserById = (id) => request.get(`/api/users/${id}`);
+
 export const getOrderDetail = (orderId, userId) => request.post('/api/orders/detail', { orderId, userId });
 export const cancelOrder = (orderId, userId) => {
     return request({

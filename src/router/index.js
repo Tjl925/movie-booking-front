@@ -16,17 +16,16 @@ import seatSelection from "@/views/choose/seatSelection.vue";
 import OrderDetail from "@/views/order/OrderDetail.vue";
 import MovieList from "@/views/movie/MovieList.vue";
 import QQAuthRedirect from "@/views/user/QQAuthRedirect.vue";
+import OrderInfo from "@/views/order/OrderInfo.vue";
+import userOrders from "@/views/user/UserOrders.vue";
+import paymentSuccess from "@/views/order/PaymentSuccess.vue";
+import findPassword from "@/views/findPassword.vue";
 
 /* eslint-disable no-unused-vars */
 /**
  * @typedef {Object} RouteMeta
  * @property {boolean} [skipAuth] - 是否跳过认证
  */
-import OrderInfo from "@/views/order/OrderInfo.vue";
-import userOrders from "@/views/user/UserOrders.vue";
-import paymentSuccess from "@/views/order/PaymentSuccess.vue";
-import findPassword from "@/views/findPassword.vue";
-
 
 // 定义路由关系
 const routes = [
@@ -151,7 +150,7 @@ router.beforeEach((to, from, next) => {
   }
 
   // 允许普通用户访问 /movie-info/:movieId
-  if (to.path.startsWith('/order-info')) {
+  if (to.path.startsWith('/order-info') || to.path.startsWith('/payment-success')) {
     next();
     return;
   }

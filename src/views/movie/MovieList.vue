@@ -123,9 +123,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import TopNav from '../components/TopNav.vue';
-import {getShowingMoives, getUpcomingMovies} from "@/api/user"
+import {getShowingMoives, getUpcomingMovies} from "@/api/movie"
 import router from "@/router";
-import route from "@vueup/vue-quill/dist/vue-quill.global";
 import {useRoute} from "vue-router";
 const activeTab = ref('nowShowing');
 // 筛选条件

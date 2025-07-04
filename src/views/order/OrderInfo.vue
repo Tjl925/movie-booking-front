@@ -1,6 +1,6 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import {getAllOrders, deleteOrder, getByOrderId, getBySeatId, refundOrder} from '@/api/orders';
+import { ref, onMounted } from 'vue';
+import {getAllOrders, deleteOrder, refundOrder} from '@/api/orders';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search } from '@element-plus/icons-vue';
 import dayjs from "dayjs";

@@ -1,13 +1,16 @@
 <script setup>
 import {onBeforeUnmount, ref} from 'vue'
 import {ArrowDown} from '@element-plus/icons-vue';
-import {useRouter} from 'vue-router';
-import {ElMessage} from "element-plus";
-import {changePassword, logout, updateUserProfile, uploadAvatar} from "@/api/user";
+import { useRouter } from 'vue-router';
+import { ElMessage } from "element-plus";
+import {updateUserProfile, uploadAvatar, changePassword, logout, sendVerificationCode} from "@/api/user";
 import {useUserInfoStore} from "@/stores/userInfo";
 
 const router = useRouter();
 const userInfoStore = useUserInfoStore();
+
+const countDown = ref(0)
+let timer = null
 
 // 1. 处理下拉菜单命令
 const handleCommand = (command) => {
@@ -70,17 +73,45 @@ const maskEmail = (email) => {
   return `${maskedUsername}@${domain}`;
 };
 
-
 // 3. 用户信息修改相关
 const updateDialogVisible = ref(false);
 const updateDTO = ref({
   username: "",
   email: "",
   phone: "",
-  avatar: ""
+  avatar: "",
+  code:""
 });
-const avatarFile = ref(null);
 
+const handleGetCode = () => {
+  // 先简单校验邮箱格式
+  const emailReg = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+  if (!emailReg.test(updateDTO.value.email)) {
+    ElMessage.error('请输入正确的邮箱格式')
+    return
+  }
+  // 模拟发送验证码，实际需调接口
+  updateDTO.value.email = updateDTO.value.email;
+  sendVerificationCode(updateDTO.value).then((res) => {
+    console.log(res)
+    if (res.status) {
+      ElMessage.success('验证码已发送至邮箱，请查收~')
+      // 启动倒计时
+      countDown.value = 60
+      timer = setInterval(() => {
+        countDown.value--
+        if (countDown.value <= 0) {
+          clearInterval(timer)
+        }
+      }, 1000)
+    }else{
+      ElMessage.error(res.message || '发送失败，请稍后重试');
+    }
+  })
+}
+
+const avatarFile = ref(null);
+// 表单数据
 const showUpdate = () => {
   updateDTO.value = {
     username: "",
@@ -108,7 +139,8 @@ const update = async () => {
       username: updateDTO.value.username || undefined,
       email: updateDTO.value.email || undefined,
       phone: updateDTO.value.phone || undefined,
-      avatar: avatarUrl || undefined
+      avatar: avatarUrl || undefined,
+      code:updateDTO.value.code||undefined,
     };
 
     // 移除undefined字段
@@ -263,6 +295,26 @@ const handlePasswordUpdate = async () => {
             </el-form-item>
             <el-form-item label="新邮箱">
               <el-input v-model="updateDTO.email" placeholder="输入新邮箱" />
+            </el-form-item>
+            <el-form-item label="验证码" prop="code">
+              <div style="display: flex; gap: 10px; align-items: center">
+                <el-input
+                    v-model="updateDTO.code"
+                    placeholder="请输入验证码"
+                    clearable
+                    :maxlength="6"
+                    style="flex: 1"
+                />
+                <el-button
+                    type="primary"
+                    @click="handleGetCode"
+                    :disabled="countDown > 0"
+                    style="width: 100px"
+
+                >
+                  {{ countDown > 0 ? `${countDown}s后重试` : '获取验证码' }}
+                </el-button>
+              </div>
             </el-form-item>
             <el-form-item label="新手机号">
               <el-input v-model="updateDTO.phone" placeholder="输入新手机号" />

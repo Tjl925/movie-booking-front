@@ -181,8 +181,8 @@ import {
   Tickets,
   VideoCamera
 } from '@element-plus/icons-vue'
-import {useSessionStore} from '@/stores/session'
-import {createOrder, getBySeatId} from "@/api/orders";
+import { useSessionStore } from '@/stores/session'
+import {createOrder} from "@/api/orders";
 import {useUserInfoStore} from "@/stores/userInfo";
 import {useOrderStore} from "@/stores/orderInfo";
 
@@ -413,20 +413,12 @@ const confirmOrder = async () => {
       const res = await createOrder(orderData, userInfoStore.userInfo.id);
       console.log('创建订单响应', res.data);
       if (res.status) {
-        // 从订单项中获取座位ID列表
-        const seatIds = res.data.orderItems.map(item => item.seatId);
-
-        // 获取座位详细信息
-        const seatsInfo = await Promise.all(
-          seatIds.map(id => getBySeatId(id).then(r => r.data))
-        );
-
         // 设置订单基本信息
         orderStore.setBasicInfo(
           res.data.session.movie.title,
           res.data.session.sessionTime,
           res.data.session.endTime,
-          seatsInfo
+          res.data.seatNumbers
         );
 
         // 确保数据已设置后再跳转

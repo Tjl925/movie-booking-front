@@ -1,10 +1,7 @@
 import request from "@/utils/request";
 export const login = (loginDTO) => request.post('/api/auth/login', loginDTO)
 export const register = (registerDTO) => request.post('/api/auth/register', registerDTO)
-export const getShowingMoives=(current,size)=>request.get('/api/movies/public/showing', {current,size})
-export const getUpcomingMovies=(current,size)=>request.get('/api/movies/public/coming', {current,size})
-export const getTop5Movies=()=>request.get('/api/movies/public/top5', {})
-
+export const validate = (registerDTO) => request.post('/api/auth/validate', registerDTO)
 export const logout = (token) => request.post('/api/auth/logout', token)
 export const updateUserProfile = (id, updateDTO) =>
     request.post(`/api/users/profile/${id}`, updateDTO)
@@ -17,12 +14,12 @@ export const uploadAvatar = (userId, file) => {
         }
     });
 };
-export const getSearchList = (current,size,key) => request.get('/api/movies/public/search', {params:current, size, key})
+
+export const getUserById = (id) => request.get(`/api/users/${id}`);
+
 export const changePassword = (ChangePasswordDTO) => request.post('http://localhost:8888/api/users/change-password', ChangePasswordDTO);
-export const getSessionInfosByMovieId = (movieId) => request.get(`/api/sessions/public/movie/${movieId}/session-infos`);
 
 //验证码相关
 export const sendVerificationCode = (emailRequestDTO) => request.post('/api/email/send-code', emailRequestDTO)
-export const validate = (registerDTO) => request.post('/api/auth/validate', registerDTO)
 export const verifyCode = (emailRequestDTO) => request.post('/api/email/verify-code',  emailRequestDTO )
 export const sendPassWordCode = (emailRequestDTO) => request.post('/api/email/send-password', emailRequestDTO)

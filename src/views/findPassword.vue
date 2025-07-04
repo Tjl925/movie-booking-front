@@ -76,8 +76,9 @@ const handleGetCode = () => {
     return
   }
   // 模拟发送验证码，实际需调接口
+  console.log('邮箱: ', emailRequestDTO)
   sendVerificationCode(emailRequestDTO.value).then((res) => {
-    console.log(res)
+    console.log('发送验证码结果:', res);
     if (res.status) {
       ElMessage.success('验证码已发送至邮箱，请查收~')
       // 启动倒计时
@@ -96,22 +97,29 @@ const handleGetCode = () => {
 
 // 下一步逻辑
 const router = useRouter();
-const handleNext = () => {
-  const isValid =  verifyCode(emailRequestDTO.value);
-  console.log(isValid);
+const handleNext = async () => {
+  try {
+    // 先验证验证码
+    const verifyResult = await verifyCode(emailRequestDTO.value);
+    console.log('验证结果:', verifyResult);
 
-  if (!isValid) {
-    ElMessage.error('验证码错误或已过期');
-    return;
-  }
-  sendPassWordCode(emailRequestDTO.value).then((res) => {
-    if(res.status) {
-      ElMessage.success(res.message)
-      router.push({ path: '/Login' })
-    } else{
-      ElMessage.error(res.message)
+    if (!verifyResult.status) {
+      ElMessage.error(verifyResult.message || '验证码错误或已过期');
+      return;
     }
-  })
+    
+    // 验证通过后发送密码
+    const sendResult = await sendPassWordCode(emailRequestDTO.value);
+    if(sendResult.status) {
+      ElMessage.success(sendResult.message);
+      router.push({ path: '/Login' });
+    } else {
+      ElMessage.error(sendResult.message);
+    }
+  } catch (error) {
+    console.error('验证或发送密码过程中出错:', error);
+    ElMessage.error('操作失败，请稍后重试');
+  }
 }
 </script>
 

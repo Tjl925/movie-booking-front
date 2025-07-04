@@ -1,10 +1,15 @@
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
-import { getSessionList } from '@/api/session';
-import { getAllOrders } from '@/api/orders';
 import * as echarts from 'echarts';
-import {Film, VideoCamera, Money, CreditCard, Coin} from '@element-plus/icons-vue';
-import {analyzeMovie, analyzeSession, analyzeSessionBoxOffice} from "@/api/statistics";
+import {Film, VideoCamera, Money, Coin} from '@element-plus/icons-vue';
+import {
+  analyzeMovie, 
+  analyzeSession, 
+  analyzeSessionBoxOffice,
+  analyzeWeekBoxOffice,
+  analyzeGenreBoxOffice,
+  analyzeRegionBoxOffice
+} from "@/api/statistics";
 
 // 统计数据
 const movieCount = ref(0);
@@ -79,38 +84,17 @@ const initWeeklyBoxOfficeChart = async () => {
     // 获取每天的票房数据
     const boxOfficeData = [];
     
-    for (const date of dates) {
-      const startOfDay = new Date(`${date}T00:00:00.000Z`).toISOString();
-      const endOfDay = new Date(`${date}T23:59:59.999Z`).toISOString();
-      
-      // 获取当天场次
-      const sessionResponse = await getSessionList({
-        current: 1,
-        size: 1000,
-        startTime: startOfDay,
-        endTime: endOfDay
-      });
-      
-      let dailyBoxOffice = 0;
-      
-      if (sessionResponse.data.records && sessionResponse.data.records.length > 0) {
-        const sessionIds = sessionResponse.data.records.map(session => session.id);
-        
-        // 获取所有订单
-        const ordersResponse = await getAllOrders();
-        
-        if (ordersResponse.data && ordersResponse.data.records) {
-          // 筛选出当天场次的已完成订单
-          const dailyOrders = ordersResponse.data.records.filter(order => 
-            sessionIds.includes(order.sessionId) && order.status === 'COMPLETED'
-          );
-          
-          // 计算当天票房
-          dailyBoxOffice = dailyOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
-        }
+    // 尝试使用批量获取接口
+    try {
+      const weekResponse = await analyzeWeekBoxOffice();
+      console.log('批量获取周票房数据:', weekResponse.data);
+      if (weekResponse.status && weekResponse.data && Array.isArray(weekResponse.data)) {
+        weekResponse.data.forEach(item => {
+          boxOfficeData.push(item || 0);
+        });
       }
-      
-      boxOfficeData.push(dailyBoxOffice);
+    } catch (weekError) {
+      console.warn('批量获取周票房数据失败:', weekError);
     }
     
     // 初始化图表
@@ -125,11 +109,13 @@ const initWeeklyBoxOfficeChart = async () => {
           left: 'center'
         },
         tooltip: {
-          trigger: 'axis'
+          trigger: 'axis',
+          formatter: '{b}<br />票房: {c} 元'
         },
         xAxis: {
           type: 'category',
-          data: dates.map(date => date.substring(5).replace('-', '/')),
+          data: dates.map(date => date),
+          name: '日期',
           axisLabel: {
             formatter: '{value}'
           }
@@ -178,6 +164,319 @@ const initWeeklyBoxOfficeChart = async () => {
   }
 };
 
+// 初始化电影类型饼图
+const initGenrePieChart = async () => {
+  try {
+    // 获取电影类型数据
+    const response = await analyzeGenreBoxOffice();
+    if (response.status) {
+      const genreData = response.data;
+      
+      // 准备图表数据
+      const chartData = genreData.map(item => ({
+        name: item.name,
+        value: item.movieCount
+      }));
+      
+      // 初始化图表
+      await nextTick();
+      const chartDom = document.getElementById('genrePieChart');
+      if (chartDom) {
+        const myChart = echarts.init(chartDom);
+        
+        const option = {
+          title: {
+            text: '不同类型电影数量分布饼图',
+            left: 'center'
+          },
+          tooltip: {
+            trigger: 'item',
+            formatter: '{a} <br/>{b}: {c} ({d}%)'
+          },
+          legend: {
+            type: 'scroll',
+            orient: 'vertical',
+            left: 10,
+            data: chartData.map(item => item.name)
+          },
+          series: [
+            {
+              name: '电影类型',
+              type: 'pie',
+              radius: ['40%', '70%'],
+              avoidLabelOverlap: false,
+              itemStyle: {
+                borderRadius: 10,
+                borderColor: '#fff',
+                borderWidth: 2
+              },
+              label: {
+                show: true,
+                formatter: '{b}: {c}'
+              },
+              emphasis: {
+                itemStyle: {
+                  shadowBlur: 10,
+                  shadowOffsetX: 0,
+                  shadowColor: 'rgba(0, 0, 0, 0.5)'
+                },
+                label: {
+                  show: true,
+                  fontSize: '18',
+                  fontWeight: 'bold'
+                }
+              },
+              labelLine: {
+                show: true
+              },
+              data: chartData
+            }
+          ]
+        };
+        
+        myChart.setOption(option);
+        
+        // 响应式调整
+        window.addEventListener('resize', () => {
+          myChart.resize();
+        });
+      }
+    }
+  } catch (error) {
+    console.error('初始化电影类型饼图失败:', error);
+  }
+};
+
+// 初始化电影类型柱状图
+const initGenreBarChart = async () => {
+  try {
+    // 获取电影类型数据
+    const response = await analyzeGenreBoxOffice();
+    if (response.status) {
+      const genreData = response.data;
+      
+      // 准备图表数据
+      const categories = genreData.map(item => item.name);
+      const boxOfficeData = genreData.map(item => item.boxOffice);
+      
+      // 初始化图表
+      await nextTick();
+      const chartDom = document.getElementById('genreBarChart');
+      if (chartDom) {
+        const myChart = echarts.init(chartDom);
+        
+        const option = {
+          title: {
+            text: '不同类型电影总票房柱状图',
+            left: 'center'
+          },
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'shadow'
+            },
+            formatter: '{b}<br />票房: {c} 元'
+          },
+          xAxis: {
+            type: 'category',
+            name: '电影类型',
+            data: categories,
+            axisLabel: {
+              interval: 0,
+              rotate: 30
+            }
+          },
+          yAxis: {
+            type: 'value',
+            name: '金额(元)'
+          },
+          series: [
+            {
+              data: boxOfficeData,
+              type: 'bar',
+              itemStyle: {
+                color: function(params) {
+                  // 为不同的柱子设置不同的颜色
+                  const colorList = [
+                    '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+                    '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'
+                  ];
+                  return colorList[params.dataIndex % colorList.length];
+                }
+              }
+            }
+          ]
+        };
+        
+        myChart.setOption(option);
+        
+        // 响应式调整
+        window.addEventListener('resize', () => {
+          myChart.resize();
+        });
+      }
+    }
+  } catch (error) {
+    console.error('初始化电影类型柱状图失败:', error);
+  }
+};
+
+// 初始化电影区域饼图
+const initRegionPieChart = async () => {
+  try {
+    // 获取电影区域数据
+    const response = await analyzeRegionBoxOffice();
+    if (response.status) {
+      const regionData = response.data;
+      
+      // 准备图表数据
+      const chartData = regionData.map(item => ({
+        name: item.name,
+        value: item.movieCount
+      }));
+      
+      // 初始化图表
+      await nextTick();
+      const chartDom = document.getElementById('regionPieChart');
+      if (chartDom) {
+        const myChart = echarts.init(chartDom);
+        
+        const option = {
+          title: {
+            text: '不同区域电影数量分布饼图',
+            left: 'center'
+          },
+          tooltip: {
+            trigger: 'item',
+            formatter: '{a} <br/>{b}: {c} ({d}%)'
+          },
+          legend: {
+            type: 'scroll',
+            orient: 'vertical',
+            left: 10,
+            data: chartData.map(item => item.name)
+          },
+          series: [
+            {
+              name: '电影区域',
+              type: 'pie',
+              radius: ['40%', '70%'],
+              avoidLabelOverlap: false,
+              itemStyle: {
+                borderRadius: 10,
+                borderColor: '#fff',
+                borderWidth: 2
+              },
+              label: {
+                show: true,
+                formatter: '{b}: {c}'
+              },
+              emphasis: {
+                itemStyle: {
+                  shadowBlur: 10,
+                  shadowOffsetX: 0,
+                  shadowColor: 'rgba(0, 0, 0, 0.5)'
+                },
+                label: {
+                  show: true,
+                  fontSize: '18',
+                  fontWeight: 'bold'
+                }
+              },
+              labelLine: {
+                show: true
+              },
+              data: chartData
+            }
+          ]
+        };
+        
+        myChart.setOption(option);
+        
+        // 响应式调整
+        window.addEventListener('resize', () => {
+          myChart.resize();
+        });
+      }
+    }
+  } catch (error) {
+    console.error('初始化电影区域饼图失败:', error);
+  }
+};
+
+// 初始化电影区域柱状图
+const initRegionBarChart = async () => {
+  try {
+    // 获取电影区域数据
+    const response = await analyzeRegionBoxOffice();
+    if (response.status) {
+      const regionData = response.data;
+      
+      // 准备图表数据
+      const categories = regionData.map(item => item.name);
+      const boxOfficeData = regionData.map(item => item.boxOffice);
+      
+      // 初始化图表
+      await nextTick();
+      const chartDom = document.getElementById('regionBarChart');
+      if (chartDom) {
+        const myChart = echarts.init(chartDom);
+        
+        const option = {
+          title: {
+            text: '不同区域电影总票房柱状图',
+            left: 'center'
+          },
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'shadow'
+            },
+            formatter: '{b}<br />票房: {c} 元'
+          },
+          xAxis: {
+            type: 'category',
+            data: categories,
+            axisLabel: {
+              interval: 0,
+              rotate: 30
+            }
+          },
+          yAxis: {
+            type: 'value',
+            name: '金额(元)'
+          },
+          series: [
+            {
+              data: boxOfficeData,
+              type: 'bar',
+              itemStyle: {
+                color: function(params) {
+                  // 为不同的柱子设置不同的颜色
+                  const colorList = [
+                    '#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de',
+                    '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'
+                  ];
+                  return colorList[params.dataIndex % colorList.length];
+                }
+              }
+            }
+          ]
+        };
+        
+        myChart.setOption(option);
+        
+        // 响应式调整
+        window.addEventListener('resize', () => {
+          myChart.resize();
+        });
+      }
+    }
+  } catch (error) {
+    console.error('初始化电影区域柱状图失败:', error);
+  }
+};
+
 // 页面加载时获取数据
 onMounted(() => {
   fetchMovieCount();
@@ -185,6 +484,10 @@ onMounted(() => {
   fetchTodayBoxOffice();
   fetchTotalBoxOffice();
   initWeeklyBoxOfficeChart();
+  initGenrePieChart();
+  initGenreBarChart();
+  initRegionPieChart();
+  initRegionBarChart();
 });
 </script>
 
@@ -250,13 +553,33 @@ onMounted(() => {
       <el-card class="chart-card">
         <div id="weeklyBoxOfficeChart" class="chart"></div>
       </el-card>
+      
+      <!-- 电影类型统计图表 -->
+      <div class="chart-row">
+        <el-card class="chart-card half-width">
+          <div id="genrePieChart" class="chart"></div>
+        </el-card>
+        <el-card class="chart-card half-width">
+          <div id="genreBarChart" class="chart"></div>
+        </el-card>
+      </div>
+      
+      <!-- 电影区域统计图表 -->
+      <div class="chart-row">
+        <el-card class="chart-card half-width">
+          <div id="regionPieChart" class="chart"></div>
+        </el-card>
+        <el-card class="chart-card half-width">
+          <div id="regionBarChart" class="chart"></div>
+        </el-card>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .statistics-container {
-  padding: 20px;
+  padding: 10px;
 }
 
 .stat-cards {
@@ -336,11 +659,22 @@ onMounted(() => {
 
 .chart-card {
   width: 100%;
+  margin-bottom: 20px;
 }
 
 .chart {
   height: 400px;
   width: 100%;
+}
+
+.chart-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.half-width {
+  width: 49%;
 }
 
 @media screen and (max-width: 1200px) {

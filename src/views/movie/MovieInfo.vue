@@ -1,11 +1,10 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Search, Plus } from '@element-plus/icons-vue';
 import MovieForm from '@/views/components/MovieForm.vue';
 import SessionForm from '@/views/components/SessionForm.vue';
 import { getMovieList, deleteMovie, updateMovieStatus } from '@/api/movie';
-import { getMovieSessionList } from '@/api/session';
 
 // 电影管理相关数据和方法
 const movieSearchKeyword = ref('');
@@ -22,8 +21,6 @@ const statusFilter = ref(''); // 电影状态筛选
 const sessionFormVisible = ref(false);
 const currentSession = ref({});
 const isEditSession = ref(false);
-const sessionList = ref([]);
-const sessionLoading = ref(false);
 
 // 电影状态选项
 const statusOptions = [

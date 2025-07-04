@@ -115,9 +115,9 @@
 </template>
 
 <script setup>
-import {computed, nextTick, onMounted, ref} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
-import {ElButton, ElRate, ElTabPane, ElTabs} from 'element-plus'
+import {ref, computed, onMounted, nextTick} from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { ElTabs, ElTabPane, ElRate, ElButton } from 'element-plus'
 import dayjs from 'dayjs'
 import TopNav from "@/views/components/TopNav.vue";
 import {getMovieById, getMovieRecommendations} from "@/api/movie"

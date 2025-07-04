@@ -49,7 +49,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import {getSearchList} from '@/api/user';
+import {getSearchList} from '@/api/movie';
 import TopNav from '@/views/components/TopNav.vue';
 
 const route = useRoute();

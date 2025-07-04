@@ -1,7 +1,5 @@
 import request from "@/utils/request";
 
-// ================= 后台管理接口 =================
-
 // 获取场次列表（后台管理）
 export const getSessionList = (params) => request.get('/api/sessions', { params });
 
@@ -32,3 +30,5 @@ export const getMovieSessionList = (movieId, params) =>
 // 获取场次座位选择状态
 export const getSeatsForSelection = (id) => 
   request.get(`/api/sessions/public/${id}/seat-selection`);
+
+export const getSessionInfosByMovieId = (movieId) => request.get(`/api/sessions/public/movie/${movieId}/session-infos`);

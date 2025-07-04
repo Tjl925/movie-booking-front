@@ -1,10 +1,14 @@
 import axios from "axios";
 import {ElMessage} from "element-plus";
-import router from "@/router";
 import { useUserInfoStore } from '@/stores/userInfo';
 
-//{baseURL: '/api'}
-const instance = axios.create();
+// 创建axios实例并配置
+const instance = axios.create({
+  // 设置合理的超时时间，单位是毫秒
+  timeout: 60000, // 60秒超时，可根据实际情况调整
+  // 如果有统一的baseURL，可以在这里设置
+  // baseURL: '/api'
+});
 
 
 // axios 请求拦截

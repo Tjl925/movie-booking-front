@@ -152,7 +152,7 @@ const options = ref({
             default: 'bounce' //弹跳
           },
           random: false, //是否随机
-          speed: 4, // 速度
+          speed: 2, // 速度
           straight: false //是否直线
         },
         number: {

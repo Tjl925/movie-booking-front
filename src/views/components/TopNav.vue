@@ -267,16 +267,22 @@ const showUpdate = () => {
   updateDialogVisible.value = true;
 };
 
-const handleGetCode = () => {
-  // 先简单校验邮箱格式
-  const emailReg = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
-  if (!emailReg.test(updateDTO.value.email)) {
-    ElMessage.error('请输入正确的邮箱格式')
-    return
-  }
-  // 模拟发送验证码，实际需调接口
-  sendVerificationCode(updateDTO.value).then((res) => {
-    console.log(res)
+const handleGetCode = async () => {
+  try {
+    // 先简单校验邮箱格式
+    const emailReg = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+    if (!emailReg.test(updateDTO.value.email)) {
+      ElMessage.error('请输入正确的邮箱格式')
+      return
+    }
+    
+    // 显示加载状态
+    ElMessage.info('正在发送验证码，请稍候...')
+    
+    // 发送验证码
+    const res = await sendVerificationCode(updateDTO.value)
+    console.log('验证码发送结果:', res)
+    
     if (res.status) {
       ElMessage.success('验证码已发送至邮箱，请查收~')
       // 启动倒计时
@@ -287,10 +293,13 @@ const handleGetCode = () => {
           clearInterval(timer)
         }
       }, 1000)
-    }else{
-      ElMessage.error(res.message || '发送失败，请稍后重试');
+    } else {
+      ElMessage.error(res.message || '发送失败，请稍后重试')
     }
-  })
+  } catch (error) {
+    console.error('发送验证码过程中出错:', error)
+    ElMessage.error('发送验证码失败，请检查网络连接或稍后重试')
+  }
 }
 
 const update = async () => {
@@ -391,9 +400,6 @@ const handlePasswordUpdate = async () => {
 
 };
 </script>
-
-
-
 
 <template>
   <div class="top-nav">

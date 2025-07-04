@@ -185,9 +185,8 @@
 <script setup>
 import TopNav from './components/TopNav.vue';
 import { useRouter } from "vue-router";
-import {getShowingMoives, getUpcomingMovies} from "@/api/user"
+import {getShowingMoives, getUpcomingMovies, getTop5Movies} from "@/api/movie"
 import {computed, onMounted, ref} from "vue";
-import {getTop5Movies} from "@/api/user"
 import {getBestBoxOfficeMovies, getMovieRecommendation} from "@/api/movie";
 import {useUserInfoStore} from "@/stores/userInfo";
 import {loadSlim} from "tsparticles-slim";
@@ -274,7 +273,7 @@ const options = ref({
             default: 'bounce' //弹跳
           },
           random: false, //是否随机
-          speed: 2, // 速度
+          speed: 1, // 速度
           straight: false //是否直线
         },
         number: {

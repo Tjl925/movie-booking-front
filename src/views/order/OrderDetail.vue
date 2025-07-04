@@ -20,8 +20,16 @@
     <!-- 订单信息表格 -->
     <el-table :data="tableData" border style="width: 100%; margin-bottom: 20px;">
       <el-table-column prop="film" label="影片" />
-      <el-table-column prop="start_time" label="开始时间" />
-      <el-table-column prop="end_time" label="截止时间" />
+      <el-table-column prop="start_time" label="开始时间" >
+        <template #default="scope">
+          {{ formatDateTime(scope.row.start_time) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="end_time" label="截止时间" >
+        <template #default="scope">
+          {{ formatDateTime(scope.row.end_time) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="seat" label="座位" />
     </el-table>
 
@@ -50,11 +58,12 @@
 <script setup>
 import {onBeforeUnmount, onMounted, ref, computed, watch} from 'vue'
 import { useOrderStore } from "@/stores/orderInfo"
-import {getOrderDetail, cancelOrder, getBySeatId} from '@/api/orders'
+import {getOrderDetail, cancelOrder} from '@/api/orders'
 import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserInfoStore } from "@/stores/userInfo";
 import request from "@/utils/request";
+import dayjs from "dayjs";
 
 const route = useRoute()
 const router = useRouter()
@@ -96,7 +105,10 @@ watch(remainingSeconds, (newVal) => {
   countdownDisplay.value = `${mins} 分 ${secs} 秒`
 }, { immediate: true, flush: 'sync' })
 
-
+const formatDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return '';
+  return dayjs(dateTimeStr).format('YYYY-MM-DD HH:mm');
+};
 
 // 获取订单详情
 const fetchOrderDetails = async () => {
@@ -111,7 +123,7 @@ const fetchOrderDetails = async () => {
       film: data.session.movie.title || orderStore.filmInfo,
       start_time: formatDateTime(data.session?.sessionTime) || orderStore.startTime,
       end_time: formatDateTime(data.session?.endTime) || orderStore.endTime,
-      seat: data.seatNumbers,
+      seat: data.seatNumbers || orderStore.seats,
     }];
 
     actualPay.value = data.totalAmount || 0;
@@ -139,11 +151,7 @@ const fetchOrderDetails = async () => {
 };
 
 // 格式化日期时间
-const formatDateTime = (dateTime) => {
-  if (!dateTime) return '';
-  const date = new Date(dateTime);
-  return isNaN(date) ? dateTime : date.toLocaleString();
-}
+
 
 // 定时器逻辑
 let timer = null
@@ -243,7 +251,7 @@ onMounted(async () => {
   tableData.value[0].film = orderStore.filmInfo
   tableData.value[0].start_time = orderStore.startTime
   tableData.value[0].end_time = orderStore.endTime
-  tableData.value[0].seat = orderStore.seats.map(seat => `${seat.seatRow}排${seat.seatColumn}座`).join('，')
+  tableData.value[0].seat = orderStore.seats
   
   // 立即获取订单详情并初始化倒计时
   await fetchOrderDetails()

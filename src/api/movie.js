@@ -3,7 +3,7 @@ import request from "@/utils/request";
 // 获取电影列表
 export const getMovieList = (params) => request.get('/api/movies/admin', { params });
 
-export const getMovieById=(id)=>request.get(`/api/movies/public/${id}`)
+export const getMovieById = (id)=>request.get(`/api/movies/public/${id}`)
 
 // 创建电影
 export const createMovie = (data) => request.post('/api/movies', data);
@@ -71,3 +71,8 @@ export const getMovieRecommendations = (movieId, limit = 5) =>
 export const getBestBoxOfficeMovies=()=>request.get('/api/movies/public/boxOffice', {})
 export const ratingMovies=(ratingDTO)=>request.post('/api/movies/public/rate',ratingDTO);
 export const getMovieRecommendation = (userId = 5) => request.get(`/api/movies/public/recommendations/${userId}`);
+
+export const getShowingMoives=(current,size)=>request.get('/api/movies/public/showing', {current,size})
+export const getUpcomingMovies=(current,size)=>request.get('/api/movies/public/coming', {current,size})
+export const getTop5Movies=()=>request.get('/api/movies/public/top5', {})
+export const getSearchList = (current,size,key) => request.get('/api/movies/public/search', {params:current, size, key})

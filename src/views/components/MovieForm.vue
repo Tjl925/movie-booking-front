@@ -65,14 +65,14 @@
             :src="getUrl(form.posterUrl)"
             style="width: 150px; height: 200px"
           ></el-image>
-          
+
           <!-- 新选择的海报预览 -->
           <el-image
             v-if="posterFile"
             :src="getPreviewUrl(posterFile)"
             style="width: 150px; height: 200px"
           ></el-image>
-          
+
           <!-- 上传控件 -->
           <el-upload
             class="avatar-uploader"
@@ -225,7 +225,7 @@ watch(() => props.visible, (newVal, oldVal) => {
 // 监听dialogVisible变化，同步回props.visible
 watch(() => dialogVisible.value, (newVal) => {
   emit('update:visible', newVal);
-  
+
   // 当对话框关闭时，清理预览URL
   if (!newVal) {
     previewUrls.value.forEach(url => URL.revokeObjectURL(url));
@@ -327,13 +327,13 @@ const handlePosterChange = (file) => {
       previewUrls.value.splice(index, 1);
     }
   }
-  
+
   // 保存文件引用，但不立即上传
   posterFile.value = file.raw;
-  
+
   // 生成预览URL供用户查看
   ElMessage.success('海报已选择，提交表单时将上传');
-  
+
   return true;
 };
 
@@ -394,6 +394,7 @@ const submitForm = async () => {
       try {
         // 准备提交的数据
         const movieData = { ...form.value };
+
 
         if (props.isEdit) {
           // 编辑模式
@@ -500,5 +501,10 @@ const submitForm = async () => {
 .trailer-uploader video {
   border-radius: 6px;
   border: 1px dashed #d9d9d9;
+}
+
+.poster-preview-container {
+  display: flex;
+  align-items: flex-start;
 }
 </style>

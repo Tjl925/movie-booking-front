@@ -26,8 +26,9 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { CircleCheckFilled } from '@element-plus/icons-vue'
-import {getBySeatId, getOrderDetail} from '@/api/orders'
+import { getOrderDetail } from '@/api/orders'
 import { useUserInfoStore } from '@/stores/userInfo'
+import dayjs from "dayjs";
 
 const route = useRoute()
 const router = useRouter()
@@ -56,11 +57,9 @@ const fetchOrderDetails = async () => {
     const data = res.data
 
     // 更新订单信息
-    const seatIds = data.orderItems?.map(item => item.seatId);
-    const seats = await Promise.all(seatIds.map(id => getBySeatId(id).then(r => r.data))) || orderStore.seats;
     filmName.value = data.session.movie.title || ''
     sessionTime.value = formatDateTime(data.session?.sessionTime) || ''
-    seatInfo.value = seats.map(seat => `${seat.seatRow}排${seat.seatColumn}座`).join('，') || ''
+    seatInfo.value = data.seatNumbers
     amount.value = data.totalAmount || 0
   } catch (error) {
     console.error('获取订单详情失败:', error)
@@ -69,11 +68,10 @@ const fetchOrderDetails = async () => {
 }
 
 // 格式化日期时间
-const formatDateTime = (dateTime) => {
-  if (!dateTime) return ''
-  const date = new Date(dateTime)
-  return isNaN(date) ? dateTime : date.toLocaleString()
-}
+const formatDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return '';
+  return dayjs(dateTimeStr).format('YYYY-MM-DD HH:mm');
+};
 
 // 返回首页
 const goToHome = () => {
