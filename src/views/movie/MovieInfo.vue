@@ -340,6 +340,8 @@ onMounted(() => {
         :total="movieTotal"
         @size-change="handleMovieSizeChange"
         @current-change="handleMovieCurrentChange"
+        :prev-text="'上一页'"
+        :next-text="'下一页'"
       />
     </div>
 

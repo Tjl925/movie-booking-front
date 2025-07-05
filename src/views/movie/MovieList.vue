@@ -48,7 +48,7 @@
         <el-radio-group v-model="sortType" size="small">
           <el-radio-button label="hot">按热门排序</el-radio-button>
           <el-radio-button label="time">按时间排序</el-radio-button>
-          <el-radio-button label="rating">按评价排序</el-radio-button>
+          <el-radio-button label="rating">按评分排序</el-radio-button>
         </el-radio-group>
       </div>
 
@@ -96,10 +96,12 @@
             @size-change="handleSizeChange"
             @current-change="handleCurrentChange"
             :current-page="Page.current"
-            :page-sizes="[4, 9, 12, 18]"
+            :page-sizes="[4,9, 12, 18]"
             :page-size="Page.size"
             layout="total, sizes, prev, pager, next, jumper"
             :total="totalMovies"
+            :prev-text="'上一页'"
+            :next-text="'下一页'"
         >
         </el-pagination>
       </div>
@@ -124,11 +126,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import {ref, computed, onMounted, watch} from 'vue';
 import TopNav from '../components/TopNav.vue';
 import {getAllGenres, getAllMovies, getAllRegions} from "@/api/movie"
 import router from "@/router";
 import {useRoute} from "vue-router";
+import {ElMessage} from "element-plus";
 const activeTab = ref('nowShowing');
 // 筛选条件
 const selectedType = ref('all');
@@ -221,7 +224,6 @@ const fetchRegionList = async () => {
     ElMessage.error('获取区域列表失败');
   }
 };
-
 // 电影年代筛选选项
 const movieYears = [
   { id: 'all', name: '全部' },
@@ -274,6 +276,7 @@ const filteredMovies = computed(() => {
   }
 });
 
+
 const goToDetail = (movieId) => {
   router.push({
     path: `/movie-info/${movieId}`
@@ -284,7 +287,6 @@ const goToBooking = (movieId) => {
     path: `/chooseSessions/${movieId}`
   });
 };
-
 const handleSizeChange = (newSize) => {
   Page.value.size = newSize;
   Page.value.current = 1; // 改变每页大小时回到第一页

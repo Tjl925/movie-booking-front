@@ -23,7 +23,7 @@
         <div class="movie-list">
           <!-- 电影项循环 -->
           <div
-              v-for="movie in movies.slice(0,8)"
+              v-for="movie in movies"
               :key="movie.id"
               class="movie-item"
               @click="goToDetail(movie.id)"

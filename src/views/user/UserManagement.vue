@@ -545,6 +545,8 @@ onMounted(() => {
           :total="total"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
+          :prev-text="'上一页'"
+          :next-text="'下一页'"
       />
     </div>
     </div>

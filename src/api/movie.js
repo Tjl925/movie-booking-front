@@ -72,12 +72,17 @@ export const getBestBoxOfficeMovies=()=>request.get('/api/movies/public/boxOffic
 export const ratingMovies=(ratingDTO)=>request.post('/api/movies/public/rate',ratingDTO);
 export const getMovieRecommendation = (userId = 5) => request.get(`/api/movies/public/recommendations/${userId}`);
 
-export const getShowingMoives=(current,size)=>request.get('/api/movies/public/showing', {current,size})
-export const getUpcomingMovies=(current,size)=>request.get('/api/movies/public/coming', {current,size})
+export const getShowingMoives = (current, size) =>
+    request.get('/api/movies/public/showing', {
+      params: { current, size }  // 关键：使用 `params` 而不是直接传对象
+    })
+export const getUpcomingMovies = (current, size) =>
+    request.get('/api/movies/public/coming', {
+      params: { current, size }  // 关键：使用 `params` 而不是直接传对象
+    })
 export const getTop5Movies=()=>request.get('/api/movies/public/top5', {})
 export const getSearchList = (current,size,key) => request.get('/api/movies/public/search', {params:current, size, key})
-
 export const getAllMovies = (status) =>
     request.get('/api/movies/public/all', {
-      params: { status }  // 关键：使用 `params` 而不是直接传对象
+        params: { status }  // 关键：使用 `params` 而不是直接传对象
     })
