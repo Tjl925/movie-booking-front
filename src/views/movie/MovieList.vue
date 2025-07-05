@@ -33,6 +33,7 @@
           </el-radio-group>
         </div>
 
+
         <!-- 年代筛选 -->
         <div class="filter-row">
           <span class="filter-label">年代:</span>
@@ -172,6 +173,7 @@ const getMovies = async () => {
     console.error('获取电影失败:', error);
     ElMessage.error('加载电影列表失败');
   }
+
 };
 
 const processMovieData = (records) => {
@@ -307,6 +309,7 @@ onMounted(() => {
   fetchGenreList(); // 获取电影类型
   getMovies();
 });
+
 </script>
 
 <style scoped>

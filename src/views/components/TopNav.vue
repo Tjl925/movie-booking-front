@@ -342,10 +342,6 @@ const update = async () => {
       ElMessage.error(res.message);
     }
      })
-
-
-
-
 }
 
 const handleAvatarChange = (file) => {

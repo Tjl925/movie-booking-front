@@ -123,45 +123,45 @@ const showUpdate = () => {
 };
 
 const update = async () => {
-  try {
-    const userId = userInfoStore.userInfo?.id;
-    if (!userId) throw new Error('用户未登录');
+  const userId = userInfoStore.userInfo?.id;
+  if (!userId) throw new Error('用户未登录');
 
-    // 1. 如果有新头像，先上传头像
-    let avatarUrl = null;
-    if (avatarFile.value) {
-      const uploadRes = await uploadAvatar(userId, avatarFile.value);
-      avatarUrl = uploadRes.data; // 假设返回的是头像URL字符串
-    }
-
-    // 2. 更新用户信息
-    const payload = {
-      username: updateDTO.value.username || undefined,
-      email: updateDTO.value.email || undefined,
-      phone: updateDTO.value.phone || undefined,
-      avatar: avatarUrl || undefined,
-      code:updateDTO.value.code||undefined,
-    };
-
-    // 移除undefined字段
-    Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
-
-    // 3. 执行更新
-    await updateUserProfile(userId, payload);
-
-    // 4. 更新本地store数据
-    userInfoStore.setUserInfo({
-      ...userInfoStore.userInfo,
-      ...payload
-    });
-
-    ElMessage.success('修改成功！');
-    updateDialogVisible.value = false;
-    avatarFile.value = null;
-
-  } catch (error) {
-    ElMessage.error(`修改失败: ${error.message}`);
+  // 1. 如果有新头像，先上传头像
+  let avatarUrl = null;
+  if (avatarFile.value) {
+    const uploadRes = await uploadAvatar(userId, avatarFile.value);
+    avatarUrl = uploadRes.data; // 假设返回的是头像URL字符串
   }
+
+  // 2. 更新用户信息
+  const payload = {
+    username: updateDTO.value.username || undefined,
+    email: updateDTO.value.email || undefined,
+    phone: updateDTO.value.phone || undefined,
+    avatar: avatarUrl || undefined,
+    code:updateDTO.value.code||undefined,
+  };
+
+  // 移除undefined字段
+  Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
+
+  // 3. 执行更新
+  updateUserProfile(userId, payload).then(res=>{
+    if(res.status) {
+      console.log('修改返回'+res.data);
+      // 4. 更新本地store数据
+      userInfoStore.setUserInfo({
+        ...userInfoStore.userInfo,
+        ...payload
+      });
+
+      ElMessage.success('修改成功！');
+      updateDialogVisible.value = false;
+      avatarFile.value = null;
+    }else{
+      ElMessage.error(res.message);
+    }
+  })
 }
 
 const handleAvatarChange = (file) => {
