@@ -231,27 +231,27 @@ onMounted(() => {
           <el-descriptions border :column="4" size="small">
             <el-descriptions-item
               :rowspan="3"
-              :width="70"
+              :width="100"
               label="电影海报"
               align="center"
             >
               <el-image
                 v-if="props.row.posterUrl"
-                style="width: 50px; height: 70px"
+                style="width: 80px; height: 120px"
                 :src="getFullUrl(props.row.posterUrl)"
               />
               <span v-else>暂无海报</span>
             </el-descriptions-item>
-            <el-descriptions-item label="电影ID" align="center">{{ props.row.id }}</el-descriptions-item>
-            <el-descriptions-item label="电影名称" align="center">{{ props.row.title }}</el-descriptions-item>
+            <el-descriptions-item label="电影ID" align="center" width="100px">{{ props.row.id }}</el-descriptions-item>
+            <el-descriptions-item label="电影名称" align="center" width="180px">{{ props.row.title }}</el-descriptions-item>
             <el-descriptions-item label="导演" align="center">{{ props.row.director }}</el-descriptions-item>
             <el-descriptions-item label="状态" align="center">
               <el-tag :type="getStatusType(props.row.status)">
                 {{ getStatusText(props.row.status) }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="主演" align="center">{{ props.row.actors }}</el-descriptions-item>
             <el-descriptions-item label="类型" align="center">{{ props.row.genre }}</el-descriptions-item>
+            <el-descriptions-item label="主演" align="center">{{ props.row.actors }}</el-descriptions-item>
             <el-descriptions-item label="语言" align="center">{{ props.row.language }}</el-descriptions-item>
             <el-descriptions-item label="国家/地区" align="center">{{ props.row.country }}</el-descriptions-item>
             <el-descriptions-item label="时长(分钟)" align="center">{{ props.row.durationMinutes }}</el-descriptions-item>
@@ -261,16 +261,17 @@ onMounted(() => {
             <el-descriptions-item label="下映日期" align="center">{{ props.row.endDate }}</el-descriptions-item>
             <el-descriptions-item label="评分人数" align="center">{{ props.row.ratingCount }}</el-descriptions-item>
             <el-descriptions-item label="观看次数" align="center">{{ props.row.viewCount }}</el-descriptions-item>
-            <el-descriptions-item label="预告片" align="center">
-              <el-link 
-                v-if="props.row.trailerUrl" 
-                type="primary" 
-                :href="getFullUrl(props.row.trailerUrl)"
-                target="_blank"
+            <el-descriptions-item label="预告片" align="center" style="display: flex; align-items: center; height: 100%;">
+              <el-link
+                  v-if="props.row.trailerUrl"
+                  type="primary"
+                  :href="getFullUrl(props.row.trailerUrl)"
+                  target="_blank"
+                  style="margin: 0 auto;"
               >
                 观看预告片
               </el-link>
-              <span v-else>暂无预告片</span>
+              <span v-else style="margin: 0 auto;">暂无预告片</span>
             </el-descriptions-item>
             <el-descriptions-item label="描述" align="center">
               {{ props.row.description || '暂无描述' }}

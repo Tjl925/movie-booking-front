@@ -271,7 +271,6 @@ const submitEditForm = async () => {
     }
   } catch (error) {
     console.error('更新用户失败:', error);
-    ElMessage.error('更新用户失败');
   }
 };
 
@@ -566,9 +565,6 @@ onMounted(() => {
         </el-form-item>
         <el-form-item label="手机号">
           <el-input v-model="editForm.phone" placeholder="请输入手机号"></el-input>
-        </el-form-item>
-        <el-form-item label="角色ID">
-          <el-input v-model.number="editForm.roleId" placeholder="请输入角色ID"></el-input>
         </el-form-item>
         <el-form-item label="头像URL">
           <el-upload

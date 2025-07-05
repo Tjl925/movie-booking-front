@@ -113,7 +113,7 @@ const handleOpenSessionSeats = async (row) => {
     });
 
     // 记录当前影厅名
-    currentHallName.value = row.hall?.hallName || '';
+    currentHallType.value = row.hall?.hallType || '';
 
     const response = await getSeatsForSelection(row.id);
     console.log('座位数据:', response);
@@ -167,14 +167,14 @@ const handleOpenSessionSeats = async (row) => {
 }
 
 // 根据影厅名动态设置座位图弹窗宽度
-const currentHallName = ref('');
+const currentHallType = ref('');
 const getDialogWidth = computed(() => {
-  switch (currentHallName.value) {
-    case 'IMAX厅':
+  switch (currentHallType.value) {
+    case 'IMAX':
       return '1200px';
-    case '2号厅':
+    case 'VIP':
       return '900px';
-    case '杜比厅':
+    case 'DOLBY':
       return '1100px';
     default:
       return '800px';
@@ -463,9 +463,9 @@ onMounted(() => {
 }
 
 .seat.available {
-  background-color: #f0f9eb;
-  border: 1px solid #67c23a;
-  color: #67c23a;
+  background-color: #f4f4f5;
+  border: 1px solid #909399;
+  color: #909399;
 }
 
 .seat.reserved {
@@ -481,9 +481,9 @@ onMounted(() => {
 }
 
 .seat.maintenance {
-  background-color: #f4f4f5;
-  border: 1px solid #909399;
-  color: #909399;
+  background-color: var(--el-color-info);
+  color: white;
+  cursor: not-allowed;
 }
 
 .seat-legend {
@@ -506,7 +506,7 @@ onMounted(() => {
 }
 
 .legend-marker.available {
-  background-color: #67c23a;
+  background-color: #f4f4f5;
 }
 
 .legend-marker.reserved {
