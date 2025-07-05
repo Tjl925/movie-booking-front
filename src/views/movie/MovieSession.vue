@@ -221,7 +221,18 @@ const getHallTypeText = (type) => {
   };
   return typeMap[type] || type;
 };
+// 处理编辑场次
+const handleEditFromWeekSchedule = (session) => {
+  currentSession.value = { ...session };
+  currentMovie.value = session.movie || {};
+  isEditSession.value = true;
+  sessionFormVisible.value = true;
+};
 
+// 处理打开座位视图
+const handleOpenSeatsFromWeekSchedule = (session) => {
+  handleOpenSessionSeats(session);
+};
 // 页面加载时获取场次列表
 onMounted(() => {
   fetchSessionList();
@@ -338,11 +349,13 @@ onMounted(() => {
     
     <!-- 场次表单组件 -->
     <session-form
-      v-model:visible="sessionFormVisible"
-      :movie-data="currentMovie"
-      :session-data="currentSession"
-      :is-edit="isEditSession"
-      @refresh="fetchSessionList"
+        v-model:visible="sessionFormVisible"
+        :movie-data="currentMovie"
+        :session-data="currentSession"
+        :is-edit="isEditSession"
+        @refresh="fetchSessionList"
+        @edit-session="handleEditFromWeekSchedule"
+        @open-seats="handleOpenSeatsFromWeekSchedule"
     />
   </el-card>
   <el-dialog
