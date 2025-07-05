@@ -239,6 +239,9 @@ const saveUserGroups = async () => {
   }
 };
 
+const getUrl =(url)=>{
+  return `http://127.0.0.1:8888/uploads${url}`;
+}
 // 组件挂载时加载用户列表和分组
 onMounted(() => {
   loadUserList();
@@ -287,7 +290,7 @@ onMounted(() => {
             >
               <el-image
                   style="width: 100px; height: 100px"
-                  src="https://cube.elemecdn.com/0/88/03b0d39583f48206768a7534e55bcpng.png"
+                  :src="getUrl(props.row.avatar)"
               />
             </el-descriptions-item>
             <el-descriptions-item label="ID" align="center">{{ props.row.id }}</el-descriptions-item>
@@ -379,6 +382,8 @@ onMounted(() => {
           :total="total"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
+          :prev-text="'上一页'"
+          :next-text="'下一页'"
       />
     </div>
     </div>
